@@ -202,7 +202,7 @@ export default function PatientDashboard() {
           frequency: '',
           startDate: '',
           endDate: '',
-          prescribedBy: userData?.name || '',
+          prescribedBy: '',
           patient: userData?.name || '',
           notes: ''
         });
@@ -224,7 +224,7 @@ export default function PatientDashboard() {
   frequency: '',
   startDate: '',
   endDate: '',
-  prescribedBy: userData?.name || '',
+  prescribedBy: '',
   patient: userData?.name || '',
   notes: ''
   });

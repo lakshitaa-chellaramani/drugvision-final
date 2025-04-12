@@ -1,8 +1,8 @@
+// app/api/interactions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import Interaction from '@/models/interaction';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as cheerio from 'cheerio'; // Optional if you want to clean HTML
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -39,25 +39,58 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
 
-    const { drug1, drug2 } = await req.json();
+    const { drug1, drug2, patientId } = await req.json();
 
     if (!drug1 || !drug2) {
       return NextResponse.json({ error: 'Both drug1 and drug2 are required.' }, { status: 400 });
     }
 
+    // Check if this interaction already exists
+    const existingInteraction = await Interaction.findOne({
+      $or: [
+        { drug1, drug2 },
+        { drug1: drug2, drug2: drug1 } // Check both orders
+      ]
+    });
+
+    if (existingInteraction) {
+      // If it exists but doesn't have this patient, we can update it
+      if (patientId && !existingInteraction.patient?.equals(patientId)) {
+        existingInteraction.patient = patientId;
+        await existingInteraction.save();
+      }
+      return NextResponse.json(existingInteraction, { status: 200 });
+    }
+
+    // Get interaction data from Gemini
     const { severity, description } = await getInteractionFromGemini(drug1, drug2);
 
     if (severity === null) {
       return NextResponse.json({ error: 'Failed to extract severity score from Gemini.' }, { status: 422 });
     }
 
-    const interaction = await Interaction.create({
+    // Create new interaction record
+    const interactionData: {
+      drug1: string;
+      drug2: string;
+      severity: number;
+      description: string;
+      date: Date;
+      patient?: string;
+    } = {
       drug1,
       drug2,
       severity,
       description,
       date: new Date(),
-    });
+    };
+
+    // Add patient if provided
+    if (patientId) {
+      interactionData.patient = patientId;
+    }
+
+    const interaction = await Interaction.create(interactionData);
 
     return NextResponse.json(interaction, { status: 201 });
   } catch (error) {
@@ -83,4 +116,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

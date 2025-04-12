@@ -1,77 +1,146 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Pill, Stethoscope, ArrowLeft } from "lucide-react"
-import { ModeToggle } from "@/components/mode-toggle"
-import Link from "next/link"
-import { PatientRegistrationForm } from "@/components/patient-registration-form"
-import { DoctorRegistrationForm } from "@/components/doctor-registration-form"
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Pill, ArrowLeft } from 'lucide-react'
+import { ModeToggle } from '@/components/mode-toggle'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState("patient")
+  const [role, setRole] = useState<'patient' | 'doctor'>('patient')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    dateOfBirth: '',
+    allergies: '',
+    chronicDiseases: '',
+    specialty: '',
+    medicalLicense: '',
+  })
 
-  useEffect(() => {
-    const role = searchParams.get("role")
-    if (role === "doctor" || role === "patient") {
-      setActiveTab(role)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, ...formData }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Registration failed')
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      if(role=='patient'){
+        router.push('/patient/dashboard')
+      }
+      else{
+        router.push('/doctor/dashboard')
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
     }
-  }, [searchParams])
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-green-50 dark:from-gray-950 dark:to-gray-900">
-      <header className="container mx-auto py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <div className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <Pill className="h-8 w-8 text-green-500" />
-              <h1 className="text-2xl font-bold text-green-600 dark:text-green-400">DrugVision</h1>
-            </div>
-          </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b">
+        <div className="container flex items-center justify-between py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Pill className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">DrugVision</span>
           </Link>
           <ModeToggle />
         </div>
       </header>
 
-      <main className="container mx-auto py-12 flex justify-center">
+      <main className="flex-1 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl"
+          className="w-full max-w-md"
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="patient" className="flex items-center gap-2">
-                <Pill className="h-4 w-4" />
-                Patient Registration
-              </TabsTrigger>
-              <TabsTrigger value="doctor" className="flex items-center gap-2">
-                <Stethoscope className="h-4 w-4" />
-                Doctor Registration
-              </TabsTrigger>
-            </TabsList>
+          <div className="bg-card rounded-xl shadow-lg border p-6">
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-bold">Create your account</h1>
+              <p className="text-muted-foreground mt-1">Choose your role and get started</p>
+            </div>
 
-            <TabsContent value="patient">
-              <PatientRegistrationForm />
-            </TabsContent>
+            <Tabs defaultValue="patient" onValueChange={(val: string) => setRole(val as 'patient' | 'doctor')} className="mb-6">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="patient">Patient</TabsTrigger>
+                <TabsTrigger value="doctor">Doctor</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="doctor">
-              <DoctorRegistrationForm />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="patient">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <Input name="name" placeholder="Full Name" onChange={handleChange} required />
+                  <Input name="email" type="email" placeholder="Email" onChange={handleChange} required />
+                  <Input name="password" type="password" placeholder="Password" onChange={handleChange} required />
+                  <Input name="dateOfBirth" type="date" onChange={handleChange} required />
+                  <Input name="allergies" placeholder="Allergies (comma separated)" onChange={handleChange} />
+                  <Input name="chronicDiseases" placeholder="Chronic Diseases (comma separated)" onChange={handleChange} />
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Registering...' : 'Register'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="doctor">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <Input name="name" placeholder="Full Name" onChange={handleChange} required />
+                  <Input name="email" type="email" placeholder="Email" onChange={handleChange} required />
+                  <Input name="password" type="password" placeholder="Password" onChange={handleChange} required />
+                  <Input name="medicalLicense" placeholder="Medical License" onChange={handleChange} required />
+                  <Input name="specialty" placeholder="Specialty" onChange={handleChange} required />
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Registering...' : 'Register'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/login" className="text-primary hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to home
+            </Link>
+          </div>
         </motion.div>
       </main>
     </div>

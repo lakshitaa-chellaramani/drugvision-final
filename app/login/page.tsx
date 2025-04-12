@@ -1,186 +1,163 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Pill, Stethoscope, ArrowLeft, Loader2 } from "lucide-react"
-import { ModeToggle } from "@/components/mode-toggle"
-import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
+import type React from 'react'
+import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { Pill, ArrowLeft } from 'lucide-react'
 
-const loginFormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-})
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ModeToggle } from '@/components/mode-toggle'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState("patient")
+  const [isLoading, setIsLoading] = useState(false)
+  const [role, setRole] = useState<'patient' | 'doctor'>('patient')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
-  const form = useForm<z.infer<typeof loginFormSchema>>({
-    resolver: zodResolver(loginFormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
-  function onSubmit(values: z.infer<typeof loginFormSchema>) {
-    setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      // Comment out actual API call
-      // axios.post('/api/login', { ...values, role: activeTab })
-      //   .then(response => {
-      //     router.push(`/${activeTab}/dashboard`);
-      //   })
-      //   .catch(error => {
-      //     toast({
-      //       title: "Login failed",
-      //       description: error.message,
-      //       variant: "destructive"
-      //     });
-      //   });
-
-      console.log(values, activeTab)
-      toast({
-        title: "Login successful",
-        description: "Welcome back to DrugVision!",
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, email, password }),
       })
 
-      if (activeTab === "patient") {
-        router.push("/patient/dashboard")
-      } else {
-        router.push("/doctor/dashboard")
-      }
+      const data = await res.json()
 
-      setIsSubmitting(false)
-    }, 1500)
+      if (!res.ok) throw new Error(data.error || 'Login failed')
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      if(role=='patient'){
+        router.push('/patient/dashboard')
+      }
+      else{
+        router.push('/doctor/dashboard')
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-green-50 dark:from-gray-950 dark:to-gray-900">
-      <header className="container mx-auto py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <div className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <Pill className="h-8 w-8 text-green-500" />
-              <h1 className="text-2xl font-bold text-green-600 dark:text-green-400">DrugVision</h1>
-            </div>
-          </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b">
+        <div className="container flex items-center justify-between py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Pill className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">DrugVision</span>
           </Link>
           <ModeToggle />
         </div>
       </header>
 
-      <main className="container mx-auto py-12 flex justify-center">
+      <main className="flex-1 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="patient" className="flex items-center gap-2">
-                <Pill className="h-4 w-4" />
-                Patient Login
-              </TabsTrigger>
-              <TabsTrigger value="doctor" className="flex items-center gap-2">
-                <Stethoscope className="h-4 w-4" />
-                Doctor Login
-              </TabsTrigger>
-            </TabsList>
+          <div className="bg-card rounded-xl shadow-lg border p-6">
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-bold">Welcome back</h1>
+              <p className="text-muted-foreground mt-1">Sign in to your account</p>
+            </div>
 
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>{activeTab === "patient" ? "Patient Login" : "Doctor Login"}</CardTitle>
-                <CardDescription>
-                  {activeTab === "patient"
-                    ? "Log in to manage your medications and health information."
-                    : "Log in to access patient records and prescribe medications."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder={activeTab === "patient" ? "john.doe@example.com" : "dr.smith@hospital.com"}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+            <Tabs defaultValue="patient" className="mb-6" onValueChange={(val) => setRole(val as 'patient' | 'doctor')}>
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="patient">Patient</TabsTrigger>
+                <TabsTrigger value="doctor">Doctor</TabsTrigger>
+              </TabsList>
+              <TabsContent value="patient">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                     />
-
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Logging in...
-                        </>
-                      ) : (
-                        "Log in"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-              <CardFooter className="flex justify-center border-t pt-6">
-                <p className="text-sm text-muted-foreground">
-                  Don't have an account?{" "}
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto"
-                    onClick={() => router.push(`/register?role=${activeTab}`)}
-                  >
-                    Register
+                  </div>
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Signing in...' : 'Sign in'}
                   </Button>
-                </p>
-              </CardFooter>
-            </Card>
-          </Tabs>
+                </form>
+              </TabsContent>
+              <TabsContent value="doctor">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor-email">Email</Label>
+                    <Input
+                      id="doctor-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor-password">Password</Label>
+                    <Input
+                      id="doctor-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Signing in...' : 'Sign in'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Don&apos;t have an account?{' '}
+                <Link href="/register" className="text-primary hover:underline">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to home
+            </Link>
+          </div>
         </motion.div>
       </main>
     </div>

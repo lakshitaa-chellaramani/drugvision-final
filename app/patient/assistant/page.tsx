@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useRouter } from "next/navigation"
 import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
+import { fetchMedicationsByName } from "@/lib/fetchMedications";
 import { 
   Send, 
   Pill, 
@@ -24,6 +26,15 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+interface UserProfile {
+  name: string;
+  email: string;
+  dateOfBirth: string; // added dateOfBirth
+  height: number; // in cm
+  weight: number; // in kg
+  allergies: string[];
+  chronicDiseases: string[];
+}
 type Message = {
   id: string
   role: "user" | "assistant"
@@ -32,13 +43,134 @@ type Message = {
 }
 
 // Sample medications for the medication profile
-const userMedications = [
-  { name: "Lisinopril", dosage: "10mg", frequency: "Daily", purpose: "Blood Pressure" },
-  { name: "Metformin", dosage: "500mg", frequency: "Twice Daily", purpose: "Diabetes" },
-  { name: "Atorvastatin", dosage: "20mg", frequency: "Daily at Night", purpose: "Cholesterol" }
-]
+// const userMedications = [
+//   { name: "Lisinopril", dosage: "10mg", frequency: "Daily", purpose: "Blood Pressure" },
+//   { name: "Metformin", dosage: "500mg", frequency: "Twice Daily", purpose: "Diabetes" },
+//   { name: "Atorvastatin", dosage: "20mg", frequency: "Daily at Night", purpose: "Cholesterol" }
+// ]
 
 export default function AIAssistant() {
+
+  const [userData, setUserData] = useState<any>(null)
+
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<UserProfile>({
+      name: "",
+      email: "",
+      dateOfBirth: "", // Added dateOfBirth with a default value
+      height: 0,
+      weight: 0,
+      allergies: [],
+      chronicDiseases: []
+    })
+    
+    const router = useRouter()
+  
+    useEffect(() => {
+      const fetchProfile = async () => {
+        setLoading(true)
+        
+        // Get token from localStorage
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          router.push('/')
+          return
+        }
+        
+        try {
+          // Fetch user profile data
+          const response = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch profile data')
+          }
+          
+          const data = await response.json()
+          
+          // Set profile with data from API or use default values if not available
+          setProfile({
+            name: data.user.name || "",
+            email: data.user.email || "",
+            dateOfBirth: data.user.dateOfBirth || "",
+            height: data.user.height || 0,
+            weight: data.user.weight || 0,
+            allergies: data.user.allergies || [],
+            chronicDiseases: data.user.chronicDiseases || []
+          })
+                  
+        } catch (error) {
+          console.error('Profile fetch error:', error)
+      
+        } finally {
+          setLoading(false)
+        }
+      }
+      
+      fetchProfile()
+    }, [router])
+
+
+  const [medications, setMedications] = useState<any[]>([]);
+  // const fetchMedications = async () => {
+  //   try {
+  //     const res = await fetch("/api/medications");
+  //     const data = await res.json();
+  //     setMedications(data.medications || []);
+  //   } catch (err) {
+  //     console.error("Failed to fetch medications", err);
+  //   }
+  // };
+  const [todaysMeds, setTodaysMeds] = useState(medications.filter(med => med.status === "active"))
+  
+
+  const fetchMedications = async () => {
+    try {
+      const res = await fetch("/api/medications");
+      const data = await res.json();
+      const allMeds = data.medications || [];
+  
+      // ✅ Filter by current user's name or email
+      const filteredMeds = allMeds.filter(
+        (med: { patient: string }) => med.patient?.toLowerCase() === userData?.name?.toLowerCase()
+      );
+      setTodaysMeds(filteredMeds.filter((med: any) => med.status === "active"));
+      setMedications(filteredMeds);
+    } catch (err) {
+      console.error("Failed to fetch medications", err);
+    }
+  };
+  
+
+useEffect(() => {
+  const fetchUserAndMeds = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch("/api/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setUserData(data.user);
+
+      const meds = await fetchMedicationsByName(data.user.name);
+      setMedications(meds);
+      setTodaysMeds(meds.filter((m: any) => m.status === "active"));
+
+    } catch (err) {
+      console.error("Error fetching user or medications", err);
+    }
+  };
+
+  fetchUserAndMeds();
+}, []);
+  
+
   const { toast } = useToast()
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -77,85 +209,59 @@ export default function AIAssistant() {
 
   const handleSendMessage = async (e?: React.FormEvent, predefinedMessage?: string) => {
     if (e) e.preventDefault()
-
+  
     const messageText = predefinedMessage || inputValue
     if (!messageText.trim()) return
-
+  
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: messageText,
       timestamp: new Date(),
     }
-
+  
     setMessages((prev) => [...prev, userMessage])
     setInputValue("")
     setIsLoading(true)
-
+  
     try {
-      // Format medications context for the prompt
-      const medicationsContext = userMedications.map(med => 
-        `${med.name} (${med.dosage}, ${med.frequency}, for ${med.purpose})`
-      ).join(", ")
+      const medicationsContext = medications.map(
+  (med) => `${med.medication} (${med.dosage}, ${med.frequency}, for ${med.purpose})`
+).join(", ");
 
-      // Enhanced prompt with medication context
-      const enhancedPrompt = `User's current medications: ${medicationsContext}. Question: ${messageText}`;
 
-      // API request to your Gemini endpoint from route.js
+      const enhancedPrompt = `User Info: Name - ${profile?.name || "Unknown"}.
+      Patient Details: ${JSON.stringify(profile)}
+  Current medications: ${medicationsContext}.
+  User Question: ${messageText}.
+  DONT USE SYMBOLS Check every field(allergies and chronic conditions) before answering.Answer clearly, in simple and short language. Add any useful medical suggestions if relevant.I have also added my allergies and chronic conditions consider that too`
+  
       const response = await fetch(API_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: enhancedPrompt
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: enhancedPrompt }),
       })
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`)
-      }
-
+      
       const data = await response.json()
-
-      // Get the response from your API format
-      const geminiResponse = data.output || "I'm sorry, I couldn't process your request at this time.";
-
-      // Create assistant message with the response
+      const geminiResponse = data.output || "I'm sorry, I couldn't process your request at this time."
+  
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: geminiResponse,
         timestamp: new Date(),
       }
-
+  
       setMessages((prev) => [...prev, assistantMessage])
-
     } catch (error) {
       console.error("Error generating response:", error)
-      toast({
-        title: "Error",
-        description: "Failed to generate a response. Please try again.",
-        variant: "destructive",
-      })
-
-      // Fallback response for errors
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I'm sorry, I encountered an error processing your request. Please try again or check your connection.",
-        timestamp: new Date(),
-      }
-      
-      setMessages((prev) => [...prev, errorMessage])
+      // error handling...
     } finally {
       setIsLoading(false)
-      // Focus the input field for the next message
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 100)
+      inputRef.current?.focus()
     }
   }
+  
 
   const handleQuickQuestion = (question: string) => {
     handleSendMessage(undefined, question)
@@ -203,16 +309,15 @@ export default function AIAssistant() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {userMedications.map((med, index) => (
+                  {medications.map((med, index) => (
                     <div key={index} className="border rounded-lg p-3">
                       <div className="flex items-center mb-1">
                         <Pill className="h-4 w-4 mr-2 text-primary" />
-                        <h4 className="font-medium">{med.name}</h4>
+                        <h4 className="font-medium">{med.medication}</h4>
                       </div>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>Dosage: {med.dosage}</p>
                         <p>Frequency: {med.frequency}</p>
-                        <p>Purpose: {med.purpose}</p>
                       </div>
                     </div>
                   ))}

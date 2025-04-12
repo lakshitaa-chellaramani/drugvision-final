@@ -197,15 +197,16 @@ export default function PatientDashboard() {
         alert('Medication added successfully!');
           await fetchMedications(); // 👈 Refresh data
         setFormData({
-          medication: '',
-          dosage: '',
-          frequency: '',
-          startDate: '',
-          endDate: '',
-          prescribedBy: '',
-          patient: userData?.name || '',
-          notes: ''
-        });
+                  medication: '',
+                  dosage: '',
+                  frequency: '',
+                  startDate: '',
+                  endDate: '',
+                  prescribedBy: '',
+                  patient: userData?.name || '',
+                  notes: '',
+                  timeOfDay: [] // Ensure timeOfDay is included
+                });
         setShowForm(false);
       } else {
         alert(`Failed: ${result.error}`);
@@ -219,14 +220,15 @@ export default function PatientDashboard() {
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-  medication: '',
-  dosage: '',
-  frequency: '',
-  startDate: '',
-  endDate: '',
-  prescribedBy: '',
-  patient: userData?.name || '',
-  notes: ''
+    medication: '',
+    dosage: '',
+    frequency: '',
+    startDate: '',
+    endDate: '',
+    prescribedBy: '',
+    patient: userData?.name || '',
+    notes: '',
+    timeOfDay: [] as string[], // Added timeOfDay property
   });
   return (
     <div className="container py-8">
@@ -402,14 +404,15 @@ export default function PatientDashboard() {
   {/* Tabs Header with Button */}
   <div className="flex flex-wrap justify-between items-center mb-4">
     <TabsList className="flex gap-2">
+    <TabsTrigger value="medications" className="flex items-center gap-2">
+        <Pill className="h-4 w-4" />
+        All Medications
+      </TabsTrigger>
       <TabsTrigger value="health" className="flex items-center gap-2">
         <Activity className="h-4 w-4" />
         Health Metrics
       </TabsTrigger>
-      <TabsTrigger value="medications" className="flex items-center gap-2">
-        <Pill className="h-4 w-4" />
-        All Medications
-      </TabsTrigger>
+     
     </TabsList>
     
     {/* Add Medication Button */}
@@ -511,7 +514,7 @@ export default function PatientDashboard() {
     <fieldset className="border rounded p-4">
       <legend className="text-sm font-medium">Time of Day</legend>
       <div className="grid grid-cols-2 gap-2 mt-2">
-        {["Morning", "Afternoon", "Evening", "Night"].map((time) => (
+        {["morning", "afternoon", "evening", "ight"].map((time) => (
           <label key={time} className="flex items-center space-x-2">
             <input
               type="checkbox"

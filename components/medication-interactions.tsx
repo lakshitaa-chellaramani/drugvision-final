@@ -12,7 +12,7 @@ interface Interaction {
   evidenceLevel: string
 }
 
-export default function MedicationInteractions() {
+export default function MedicationInteractions(medications: any) {
   const [interactions, setInteractions] = useState<Interaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

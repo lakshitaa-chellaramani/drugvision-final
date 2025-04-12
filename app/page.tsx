@@ -72,14 +72,19 @@ export default function Home() {
   ]
 
   // Background animation particles
-  const particles = Array.from({ length: 20 }, (_, i) => ({
+ // Replace dynamic random values with stable ones
+const particles = Array.from({ length: 20 }, (_, i) => {
+  // Use a seeded random function or stable values
+  const stableSize = 5 + (i % 10); // Example stable size
+  return {
     id: i,
-    size: Math.random() * 10 + 5,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    duration: Math.random() * 20 + 10,
-    delay: Math.random() * 5
-  }))
+    size: stableSize,
+    x: (i * 5) % 100, // Stable positioning
+    y: (i * 7) % 100,
+    duration: 10 + (i % 10),
+    delay: i % 5
+  }
+});
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-green-50 dark:from-gray-950 dark:to-gray-900 overflow-x-hidden relative">
@@ -155,26 +160,29 @@ export default function Home() {
       {/* Hero section DNA-like animated background */}
       <div className="absolute top-0 left-0 w-full h-screen overflow-hidden pointer-events-none">
         {Array.from({ length: 10 }, (_, i) => (
-          <motion.div
-            key={`dna-${i}`}
-            className="absolute h-1 rounded-full bg-gradient-to-r from-green-200 to-green-400 dark:from-green-700 dark:to-green-500 opacity-30 dark:opacity-20"
-            style={{
-              width: `${Math.random() * 30 + 20}%`,
-              left: `${Math.random() * 80}%`,
-              top: `${i * 10 + Math.random() * 5}%`,
-            }}
-            animate={{
-              x: [-50, 50, -50],
-              scaleX: [1, 1.5, 1],
-              opacity: [0.1, 0.3, 0.1],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 15,
-              repeat: Infinity,
-              repeatType: "reverse",
-              ease: "easeInOut"
-            }}
-          />
+         <motion.div
+         key={`dna-${i}`}
+         className="absolute h-1 rounded-full bg-gradient-to-r from-green-200 to-green-400 dark:from-green-700 dark:to-green-500 opacity-30 dark:opacity-20"
+         initial={{
+           width: `${25 + (i % 3 * 5)}%`, // Stable width calculation (25%, 30%, or 35%)
+           left: `${10 + (i * 7)}%`, // Stable left positioning
+           top: `${i * 10}%`, // Remove random top offset
+           x: 0,
+           scaleX: 1,
+           opacity: 0.1
+         }}
+         animate={{
+           x: [-20, 20, -20], // Reduced movement range
+           scaleX: [1, 1.2, 1], // Reduced scale variation
+           opacity: [0.1, 0.2, 0.1], // Reduced opacity variation
+         }}
+         transition={{
+           duration: 15 + (i % 5), // More predictable durations (15-19s)
+           repeat: Infinity,
+           repeatType: "reverse",
+           ease: "easeInOut"
+         }}
+       />
         ))}
       </div>
 
@@ -715,25 +723,29 @@ export default function Home() {
           <div className="absolute inset-0 overflow-hidden">
             {Array.from({ length: 6 }, (_, i) => (
               <motion.div
-                key={`stat-bg-${i}`}
-                className="absolute bg-white dark:bg-green-500 rounded-full opacity-10"
-                style={{
-                  width: `${Math.random() * 300 + 100}px`,
-                  height: `${Math.random() * 300 + 100}px`,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  x: [0, Math.random() * 50 - 25],
-                  y: [0, Math.random() * 50 - 25],
-                  scale: [1, Math.random() * 0.3 + 0.9, 1],
-                }}
-                transition={{
-                  duration: Math.random() * 10 + 10,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-              />
+              key={`stat-bg-${i}`}
+              className="absolute bg-white dark:bg-green-500 rounded-full opacity-10"
+              initial={{
+                width: `${100 + (i * 15) % 300}px`, // Deterministic width (100-400px)
+                height: `${100 + (i * 17) % 300}px`, // Deterministic height (100-400px)
+                left: `${(i * 23) % 100}%`, // Deterministic positioning
+                top: `${(i * 19) % 100}%`,
+                x: 0,
+                y: 0,
+                scale: 1
+              }}
+              animate={{
+                x: [0, (i % 2 === 0 ? 1 : -1) * (10 + (i % 15))], // Alternating directions
+                y: [0, (i % 3 === 0 ? 1 : -1) * (8 + (i % 12))],
+                scale: [1, 1.1 - (i % 10 * 0.01), 1] // Subtle scale variation
+              }}
+              transition={{
+                duration: 10 + (i % 7), // Duration between 10-16s
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut"
+              }}
+            />
             ))}
           </div>
           
@@ -928,24 +940,27 @@ export default function Home() {
           <div className="absolute inset-0 overflow-hidden">
             {Array.from({ length: 6 }, (_, i) => (
               <motion.div
-                key={`cta-pattern-${i}`}
-                className="absolute bg-white opacity-5 rounded-full"
-                style={{
-                  width: `${Math.random() * 400 + 200}px`,
-                  height: `${Math.random() * 400 + 200}px`,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  x: [0, Math.random() * 60 - 30],
-                  y: [0, Math.random() * 60 - 30],
-                }}
-                transition={{
-                  duration: Math.random() * 20 + 10,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
-              />
+              key={`cta-pattern-${i}`}
+              className="absolute bg-white opacity-5 rounded-full"
+              initial={{
+                width: `${200 + (i * 37) % 400}px`, // Stable width (200-600px)
+                height: `${200 + (i * 41) % 400}px`, // Stable height (200-600px)
+                left: `${(i * 53) % 100}%`, // Stable positioning
+                top: `${(i * 59) % 100}%`,
+                x: 0,
+                y: 0
+              }}
+              animate={{
+                x: [0, (i % 2 === 0 ? 1 : -1) * (15 + (i % 15))], // Alternating directions
+                y: [0, (i % 3 === 0 ? -1 : 1) * (12 + (i % 12))]  // Varied movement
+              }}
+              transition={{
+                duration: 10 + (i % 11), // Duration between 10-20s
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut"
+              }}
+            />
             ))}
           </div>
           

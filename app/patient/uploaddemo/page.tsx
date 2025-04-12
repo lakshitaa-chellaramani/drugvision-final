@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,22 +11,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { Upload, Camera, FileText, AlertTriangle, CheckCircle2, Loader2, X, Pill, Text } from "lucide-react"
+import axios from "axios"
 
-// Define the OCR response type
-interface OcrResponse {
-  success: boolean;
-  texts: string[];
-  boxes: number[][];
-  image_url: string;
+// Define types for the extracted data
+interface Medication {
+  name: string
+  dosage: string
+  frequency: {
+    morning: boolean
+    afternoon: boolean
+    night: boolean
+  }
+  duration: {
+    days: number
+    startDate?: string
+    endDate?: string
+  }
 }
 
-// Define medication type
-interface Medication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  interaction?: string;
-  interactionLevel?: "mild" | "moderate" | "severe";
+interface PrescriptionData {
+  doctor: {
+    name: string
+  }
+  medications: Medication[]
+}
+
+interface OcrResponse {
+  success: boolean
+  texts: string[]
+  boxes: number[][]
+  image_url: string
 }
 
 export default function UploadPrescriptions() {
@@ -38,10 +51,8 @@ export default function UploadPrescriptions() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [ocrResult, setOcrResult] = useState<OcrResponse | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<null | {
-    status: "safe" | "warning" | "danger"
-    medications: Medication[]
-  }>(null)
+  const [prescriptionData, setPrescriptionData] = useState<PrescriptionData | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -53,10 +64,8 @@ export default function UploadPrescriptions() {
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
-
     const file = e.dataTransfer.files?.[0]
     if (!file) return
-
     setUploadedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
   }
@@ -65,49 +74,83 @@ export default function UploadPrescriptions() {
     e.preventDefault()
   }
 
-  // Process OCR text into medication objects
-  const processMedicationText = (texts: string[]): Medication[] => {
-    // This is a simple implementation - in a real app, you'd use more sophisticated NLP
-    // or pattern matching to extract medication information
-    const medications: Medication[] = []
+  const extractPrescriptionData = async (text: string) => {
+    setIsAnalyzing(true)
+    setError(null)
     
-    // Find likely medication names and their information
-    for (const text of texts) {
-      // Simple pattern matching for common medication formats
-      // This is very basic and would need to be much more robust in a real app
-      const dosageMatch = text.match(/(\d+)\s*(mg|mcg|ml|g)/i)
-      const frequencyMatch = text.match(/(once|twice|three times|daily|weekly|monthly|every)/i)
+    try {
+      const prompt = `Extract all prescription information from the following text with your understanding:
+"${text}"
+
+Return a JSON object with the following structure:
+{
+  "doctor": {
+    "name": "Doctor's full name",
+  },
+  "medications": [
+    {
+      "name": "Full medication name",
+      "dosage": "Strength if specified",
+      "frequency": {
+        "morning": true/false,
+        "afternoon": true/false,
+        "night": true/false
+      },
+      "duration": {
+        "days": "Number of days (number only)",
+        "startDate": "Start date if specified",
+        "endDate": "End date if specified"
+      }
+    }
+  ]
+}
+start date is today and end date is today i.e 13-04-2024 + duration.
+If any value is missing in the input, use null or skip.
+Ensure numbers are returned as numeric values where appropriate.
+Parse dosage instructions like "1-0-1" where numbers indicate morning-afternoon-night doses.`
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyAmNwK1mscfNky7a37zZQGBqRfpC_1uBH0`,
+        {
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 4096,
+          }
+        }
+      )
+
+      const generatedText = response.data.candidates[0].content.parts[0].text
+      const jsonMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                        generatedText.match(/{[\s\S]*}/)
       
-      if (dosageMatch || frequencyMatch || /tablet|capsule|pill/i.test(text)) {
-        // This text likely contains medication info
-        const parts = text.split(/\s+/)
-        
-        // Very simple heuristic: first word might be medication name
-        // In reality, you'd need a medical dictionary or API
-        const name = parts[0]
-        const dosage = dosageMatch ? dosageMatch[0] : "Unknown"
-        const frequency = frequencyMatch ? frequencyMatch[0] : "As needed"
-        
-        medications.push({
-          name,
-          dosage,
-          frequency
-        })
-      }
+      const jsonContent = jsonMatch ? jsonMatch[0].replace(/```json|```/g, '').trim() : generatedText
+      const parsedData = JSON.parse(jsonContent)
+      setPrescriptionData(parsedData)
+      
+      toast({
+        title: "Analysis complete",
+        description: "Your prescription has been analyzed successfully.",
+      })
+    } catch (err) {
+      console.error('Error extracting prescription data:', err)
+      setError('Failed to extract prescription data. Please try again.')
+      toast({
+        title: "Error processing prescription",
+        description: "There was a problem analyzing your prescription. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAnalyzing(false)
     }
-    
-    // If we couldn't parse any structured data, just treat each text as a medication name
-    if (medications.length === 0 && texts.length > 0) {
-      for (const text of texts) {
-        medications.push({
-          name: text,
-          dosage: "Unknown",
-          frequency: "See prescription"
-        })
-      }
-    }
-    
-    return medications
   }
 
   const handleUpload = async () => {
@@ -123,11 +166,9 @@ export default function UploadPrescriptions() {
     setIsUploading(true)
 
     try {
-      // Create a FormData object to send the file
       const formData = new FormData()
       formData.append("file", uploadedFile)
 
-      // Call the FastAPI endpoint
       const response = await fetch("http://localhost:8000/api/ocr", {
         method: "POST",
         body: formData,
@@ -137,60 +178,30 @@ export default function UploadPrescriptions() {
         throw new Error(`OCR request failed with status ${response.status}`)
       }
 
-      // Parse the response
       const ocrData: OcrResponse = await response.json()
       setOcrResult(ocrData)
-      setIsUploading(false)
-      setIsAnalyzing(true)
-
-      // Process the OCR text into medication data
-      setTimeout(() => {
-        setIsAnalyzing(false)
-        
-        const medications = processMedicationText(ocrData.texts)
-        
-        // Basic detection of potential interactions (in real app, you'd use a medical API)
-        // This is just for demonstration
-        let status: "safe" | "warning" | "danger" = "safe"
-        
-        // Simulate potential interaction for demo purposes
-        if (medications.length >= 2) {
-          // Randomly assign an interaction to one medication
-          const randomIndex = Math.floor(Math.random() * medications.length)
-          medications[randomIndex] = {
-            ...medications[randomIndex],
-            interaction: "May interact with other medications in your prescription",
-            interactionLevel: "mild"
-          }
-          status = "warning"
-        }
-
-        setAnalysisResult({
-          status,
-          medications
-        })
-
-        toast({
-          title: "Analysis complete",
-          description: "Your prescription has been analyzed successfully.",
-        })
-      }, 2000)
+      
+      // Combine all OCR text into a single string
+      const combinedText = ocrData.texts.join("\n")
+      await extractPrescriptionData(combinedText)
     } catch (error) {
       console.error("OCR API error:", error)
-      setIsUploading(false)
       toast({
         title: "Error processing image",
         description: "There was a problem analyzing your prescription. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsUploading(false)
     }
   }
 
   const handleClearFile = () => {
     setUploadedFile(null)
     setPreviewUrl(null)
-    setAnalysisResult(null)
+    setPrescriptionData(null)
     setOcrResult(null)
+    setError(null)
   }
 
   const handleAddToMedications = () => {
@@ -198,12 +209,7 @@ export default function UploadPrescriptions() {
       title: "Medications added",
       description: "The new medications have been added to your profile.",
     })
-
-    // Reset the form
-    setUploadedFile(null)
-    setPreviewUrl(null)
-    setAnalysisResult(null)
-    setOcrResult(null)
+    handleClearFile()
   }
 
   return (
@@ -380,7 +386,7 @@ export default function UploadPrescriptions() {
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Analysis Results</CardTitle>
-                <CardDescription>Detected medications and potential interactions</CardDescription>
+                <CardDescription>Detected medications and prescription details</CardDescription>
               </CardHeader>
               <CardContent>
                 {isAnalyzing ? (
@@ -388,11 +394,10 @@ export default function UploadPrescriptions() {
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <h3 className="text-lg font-medium mb-2">Analyzing Prescription</h3>
                     <p className="text-sm text-muted-foreground text-center">
-                      We're using OCR technology to extract medication information and checking for potential
-                      interactions.
+                      We're extracting medication information using AI.
                     </p>
                   </div>
-                ) : analysisResult ? (
+                ) : prescriptionData ? (
                   <div className="space-y-6">
                     {/* Processed OCR image */}
                     {ocrResult && (
@@ -403,118 +408,69 @@ export default function UploadPrescriptions() {
                           alt="Annotated prescription"
                           className="w-full border rounded-lg"
                         />
-                        
-                        {/* Display Raw OCR Text */}
-                        <div className="mt-4 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900">
-                          <div className="flex items-center mb-2">
-                            <FileText className="h-4 w-4 mr-2 text-primary" />
-                            <h4 className="font-medium">Extracted Text</h4>
-                          </div>
-                          {ocrResult.texts.length > 0 ? (
-                            <ul className="space-y-1 list-disc list-inside text-sm">
-                              {ocrResult.texts.map((text, idx) => (
-                                <li key={idx} className="text-slate-700 dark:text-slate-300">
-                                  {text}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">No text detected</p>
-                          )}
-                        </div>
                       </div>
                     )}
                     
-                    {analysisResult.status === "warning" && (
-                      <Alert
-                        variant="default"
-                        className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400"
-                      >
-                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        <AlertTitle className="text-amber-600 dark:text-amber-400">
-                          Potential Interaction Detected
-                        </AlertTitle>
-                        <AlertDescription className="text-amber-600 dark:text-amber-400">
-                          Some medications may interact with your current regimen. Review the details below.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    {analysisResult.status === "danger" && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Severe Interaction Detected</AlertTitle>
-                        <AlertDescription>
-                          Some medications may cause severe interactions with your current regimen. Please consult your
-                          doctor.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    {analysisResult.status === "safe" && (
-                      <Alert
-                        variant="default"
-                        className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-                      >
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        <AlertTitle className="text-green-600 dark:text-green-400">No Interactions Detected</AlertTitle>
-                        <AlertDescription className="text-green-600 dark:text-green-400">
-                          These medications appear safe to take with your current regimen.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Detected Medications</h3>
-
-                      {analysisResult.medications.map((med, index) => (
-                        <div key={index} className="border rounded-lg p-4">
-                          <div className="flex items-start space-x-3">
-                            <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-full">
-                              <Pill className="h-4 w-4 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div className="space-y-2 flex-1">
-                              <div>
-                                <h4 className="font-medium">{med.name}</h4>
-                                <div className="text-sm text-muted-foreground">
-                                  {med.dosage} • {med.frequency}
+                      <div className="mb-4">
+                        <h3 className="font-medium text-lg">Doctor Information</h3>
+                        <p><span className="font-medium">Name:</span> {prescriptionData.doctor.name || 'N/A'}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium text-lg">Medications</h3>
+                        {prescriptionData.medications.map((med, index) => (
+                          <div key={index} className="border rounded-lg p-4 mb-4">
+                            <div className="flex items-start space-x-3">
+                              <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-full">
+                                <Pill className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="space-y-2 flex-1">
+                                <div>
+                                  <h4 className="font-medium">{med.name}</h4>
+                                  <div className="text-sm text-muted-foreground">
+                                    {med.dosage}
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="font-medium">Frequency:</p>
+                                  <div className="flex gap-4 mt-1">
+                                    {med.frequency.morning && (
+                                      <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm">
+                                        Morning
+                                      </span>
+                                    )}
+                                    {med.frequency.afternoon && (
+                                      <span className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded text-sm">
+                                        Afternoon
+                                      </span>
+                                    )}
+                                    {med.frequency.night && (
+                                      <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-2 py-1 rounded text-sm">
+                                        Night
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div>
+                                    <p className="font-medium">Duration:</p>
+                                    <p>{med.duration.days} days</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Start:</p>
+                                    <p>{med.duration.startDate || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">End:</p>
+                                    <p>{med.duration.endDate || 'N/A'}</p>
+                                  </div>
                                 </div>
                               </div>
-
-                              {med.interaction && (
-                                <Alert
-                                  variant={med.interactionLevel === "severe" ? "destructive" : "default"}
-                                  className={`
-                                  ${med.interactionLevel === "mild" ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800" : ""}
-                                  ${med.interactionLevel === "moderate" ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800" : ""}
-                                `}
-                                >
-                                  <AlertTriangle
-                                    className={`h-4 w-4 ${
-                                      med.interactionLevel === "mild"
-                                        ? "text-amber-600 dark:text-amber-400"
-                                        : med.interactionLevel === "moderate"
-                                          ? "text-orange-600 dark:text-orange-400"
-                                          : ""
-                                    }`}
-                                  />
-                                  <AlertDescription
-                                    className={`text-sm ${
-                                      med.interactionLevel === "mild"
-                                        ? "text-amber-600 dark:text-amber-400"
-                                        : med.interactionLevel === "moderate"
-                                          ? "text-orange-600 dark:text-orange-400"
-                                          : ""
-                                    }`}
-                                  >
-                                    {med.interaction}
-                                  </AlertDescription>
-                                </Alert>
-                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
 
                     <Button onClick={handleAddToMedications} className="w-full">
@@ -526,7 +482,7 @@ export default function UploadPrescriptions() {
                     <FileText className="h-10 w-10 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">No Analysis Results Yet</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Upload a prescription to see analysis results and potential interactions.
+                      Upload a prescription to see analysis results.
                     </p>
                     <Button variant="outline" onClick={() => setActiveTab("upload")} className="mt-2">
                       Upload Prescription

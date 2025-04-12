@@ -197,7 +197,7 @@ export default function PatientDashboard() {
               <CardDescription>Last 7 days</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[180px]">
+              <div className="h-[18px]">
                 <ChartContainer data={adherenceData} xAxisKey="date" yAxisKey="adherence" className="h-full">
                   <ChartGrid />
                   <ChartBar x="date" y="adherence" className="fill-green-500/80" />

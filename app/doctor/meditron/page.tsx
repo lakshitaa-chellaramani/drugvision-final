@@ -56,11 +56,11 @@ export default function MeditronAI() {
   };
 
   // Convert markdown-style text to HTML
-  const formatText = (text) => {
+const formatText = (text: string): string => {
     if (!text) return "";
     
     // Replace ** with strong tags
-    let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    let formatted: string = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
     // Replace * with em tags
     formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
@@ -69,7 +69,7 @@ export default function MeditronAI() {
     formatted = formatted.replace(/\n/g, '<br/>');
     
     return formatted;
-  };
+};
 
   const handleCopy = () => {
     if (analysis) {

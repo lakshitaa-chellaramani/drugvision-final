@@ -1,4 +1,5 @@
 // This file contains the Patient model schema
+import { Weight } from 'lucide-react';
 import mongoose from 'mongoose';
 
 const PatientSchema = new mongoose.Schema({
@@ -8,6 +9,13 @@ const PatientSchema = new mongoose.Schema({
   },
   dateOfBirth: {
     type: Date,
+    required: true,
+  },height: {
+    type: Number,
+    required: true,
+  },
+  weight: {
+    type: Number,
     required: true,
   },
   email: {

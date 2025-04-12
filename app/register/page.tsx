@@ -21,6 +21,8 @@ export default function RegisterPage() {
     email: '',
     password: '',
     dateOfBirth: '',
+    height: 0,
+    weight: 0,
     allergies: '',
     chronicDiseases: '',
     specialty: '',
@@ -37,6 +39,7 @@ export default function RegisterPage() {
     setError('')
 
     try {
+      console.log('Form data:', formData)
       const res = await fetch('/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,17 +47,10 @@ export default function RegisterPage() {
       })
 
       const data = await res.json()
-
       if (!res.ok) throw new Error(data.error || 'Registration failed')
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      if(role=='patient'){
-        router.push('/patient/dashboard')
-      }
-      else{
-        router.push('/doctor/dashboard')
-      }
+        router.push('/login')
+     
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -99,6 +95,8 @@ export default function RegisterPage() {
                   <Input name="email" type="email" placeholder="Email" onChange={handleChange} required />
                   <Input name="password" type="password" placeholder="Password" onChange={handleChange} required />
                   <Input name="dateOfBirth" type="date" onChange={handleChange} required />
+                  <Input name="height" type="number" placeholder="height (in cm)" onChange={handleChange} required />
+                  <Input name="weight" type="number" placeholder="weight(in kg)" onChange={handleChange}  required/>
                   <Input name="allergies" placeholder="Allergies (comma separated)" onChange={handleChange} />
                   <Input name="chronicDiseases" placeholder="Chronic Diseases (comma separated)" onChange={handleChange} />
                   {error && <p className="text-sm text-red-500">{error}</p>}

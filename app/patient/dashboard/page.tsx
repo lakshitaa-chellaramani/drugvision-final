@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -93,11 +94,70 @@ const todaysMedications = medications.filter((med) => med.status === "active")
 
 export default function PatientDashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date())
+  
+  interface UserData {
+    name: string;
+    // Add other user data fields as needed
+  }
+
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check if token exists in localStorage
+    const checkAuth = async () => {
+      setLoading(true)
+      
+      // Get token from localStorage (only runs client-side)
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        // No token found, redirect to home page
+        router.push('/')
+        return
+      }
+      
+      try {
+        // Token exists, fetch user data
+        const response = await fetch('/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (!response.ok) {
+          // Invalid token or other API error
+          throw new Error('Failed to fetch user data')
+        }
+        
+        const data = await response.json()
+        setUserData(data.user)
+                
+      } catch (error) {
+        console.error('Authentication error:', error)
+        // Clear invalid token and redirect
+        localStorage.removeItem('token')
+        router.push('/')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    checkAuth()
+  }, [router])
+
 
   return (
     <div className="container py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <h1 className="text-3xl font-bold mb-6">Patient Dashboard</h1>
+        {loading ? (
+          <h1 className="text-3xl font-bold mb-6">Loading...</h1>
+        ) : (
+          <h1 className="text-3xl font-bold mb-6">
+            {userData?.name ? `${userData.name}'s Dashboard` : "Patient Dashboard"}
+          </h1>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>

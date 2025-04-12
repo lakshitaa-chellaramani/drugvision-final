@@ -37,6 +37,8 @@ export async function POST(req: Request) {
         dateOfBirth: extra.dateOfBirth,
         allergies: extra.allergies || [],
         chronicDiseases: extra.chronicDiseases || [],
+        height: extra.height,
+        weight: extra.weight,
       });
     }
 

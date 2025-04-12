@@ -1,30 +1,76 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import Medication from '@/models/medication';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: { json: () => any; }) {
   try {
     await dbConnect();
+
     const body = await req.json();
-    
-    const medication = await Medication.create(body);
-    return NextResponse.json(medication, { status: 201 });
+    const {
+      medication,
+      dosage,
+      frequency,
+      startDate,
+      endDate,
+      status = 'active',
+      prescribedBy,
+      patient,
+      notes
+    } = body;
+
+    if (!medication || !dosage || !frequency || !startDate) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+    }
+
+    // Call the extractdrugs API
+    const geminiResponse = await fetch(`http://localhost:3000/api/extractdrugs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ medicine: medication }),
+    });
+
+    const result = await geminiResponse.json();
+    if (!geminiResponse.ok) {
+      return new Response(JSON.stringify({ error: 'Failed to extract drugs' }), { status: 500 });
+    }
+
+    const drugsArray = result.drugs.map((name) => ({ name }));
+
+    const newMed = await Medication.create({
+      medication,
+      drugs: drugsArray,
+      dosage,
+      frequency,
+      startDate,
+      endDate,
+      status,
+      prescribedBy,
+      patient,
+      notes,
+    });
+
+    return new Response(JSON.stringify({ success: true, medication: newMed }), {
+      status: 201,
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create medication', details: error }, { status: 500 });
+    console.error('POST /api/medications error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+    });
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await dbConnect();
-    const { searchParams } = new URL(req.url);
-    const patientId = searchParams.get('patientId');
-
-    const filter = patientId ? { patient: patientId } : {};
-    const medications = await Medication.find(filter).sort({ createdAt: -1 });
-
-    return NextResponse.json(medications, { status: 200 });
+    const medications = await Medication.find().sort({ createdAt: -1 });
+    return new Response(JSON.stringify({ success: true, medications }), {
+      status: 200,
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch medications', details: error }, { status: 500 });
+    console.error('GET /api/medications error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+    });
   }
 }

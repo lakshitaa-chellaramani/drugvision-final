@@ -1,14 +1,18 @@
-// This file would contain the Medication model schema
-// Commented out as requested
-
-/*
 import mongoose from 'mongoose';
 
 const MedicationSchema = new mongoose.Schema({
-  name: {
+  medication: {
     type: String,
     required: true,
   },
+  drugs: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
   dosage: {
     type: String,
     required: true,
@@ -16,6 +20,11 @@ const MedicationSchema = new mongoose.Schema({
   frequency: {
     type: String,
     required: true,
+  },
+  timeOfDay: {
+    type: [String],
+    enum: ['morning', 'afternoon', 'evening', 'night'],
+    default: [],
   },
   startDate: {
     type: Date,
@@ -30,14 +39,10 @@ const MedicationSchema = new mongoose.Schema({
     default: 'active',
   },
   prescribedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    type: String,
   },
   patient: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    type: String,
   },
   notes: {
     type: String,
@@ -49,4 +54,3 @@ const MedicationSchema = new mongoose.Schema({
 });
 
 export default mongoose.models.Medication || mongoose.model('Medication', MedicationSchema);
-*/

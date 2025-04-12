@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
 const MedicationSchema = new mongoose.Schema({
+  medication:{
+    type: String,
+    required:true
+  },
   drugs: [
     {
       name: {

@@ -3,83 +3,45 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import axios from "axios" 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
-import { Pill, Clock, CalendarIcon, Activity, AlertTriangle, CheckCircle2, BarChart4, LineChart, CheckCircle, X, TrendingUp, Users, PieChart } from "lucide-react"
-import { 
-  BarChart, 
-  Bar, 
-  LineChart as RechartsLineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import { Pill, Clock, CalendarIcon, Activity, AlertTriangle, CheckCircle2, BarChart4, LineChart } from "lucide-react"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendItem,
+  ChartGrid,
+  ChartXAxis,
+  ChartYAxis,
+  ChartLine,
+  ChartBar,
+} from "@/components/ui/chart"
+import {
   ResponsiveContainer,
+  CartesianGrid,
+  Tooltip,
+  XAxis,
+  YAxis,
+  Legend,
+  BarChart as RechartsBarChart,
+  Bar,
+  LineChart as RechartsLineChart,
+  Line,
   PieChart as RechartsPieChart,
   Pie,
   Cell,
-  Sector
+  Sector,
 } from "recharts"
-import MedicationInteractions from "@/components/medication-interactions";
+import MedicationInteractions from "@/components/medication-interactions"
 
 // Mock data
-const medications = [
-  {
-    id: 1,
-    name: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    prescribedBy: "Dr. Smith",
-    startDate: "2023-01-15",
-    endDate: "2023-07-15",
-    timeOfDay: "Morning",
-    status: "active",
-    taken: false
-  },
-  {
-    id: 2,
-    name: "Metformin",
-    dosage: "500mg",
-    frequency: "Twice daily",
-    prescribedBy: "Dr. Johnson",
-    startDate: "2023-02-10",
-    endDate: "2023-08-10",
-    timeOfDay: "Morning and Evening",
-    status: "active",
-    taken: false
-  },
-  {
-    id: 3,
-    name: "Atorvastatin",
-    dosage: "20mg",
-    frequency: "Once daily",
-    prescribedBy: "Dr. Smith",
-    startDate: "2023-03-05",
-    endDate: "2023-09-05",
-    timeOfDay: "Evening",
-    status: "active",
-    taken: false
-  },
-  {
-    id: 4,
-    name: "Amoxicillin",
-    dosage: "500mg",
-    frequency: "Three times daily",
-    prescribedBy: "Dr. Wilson",
-    startDate: "2023-05-01",
-    endDate: "2023-05-14",
-    timeOfDay: "Morning, Afternoon, Evening",
-    status: "completed",
-    taken: true
-  },
-]
+
 
 const adherenceData = [
   { date: "Mon", adherence: 100 },
@@ -99,8 +61,6 @@ const healthMetricsData = [
   { date: "May", bloodPressure: 117, bloodSugar: 92, cholesterol: 160 },
   { date: "Jun", bloodPressure: 116, bloodSugar: 88, cholesterol: 155 },
 ]
-
-// New dashboard chart data
 const monthlyAdherenceData = [
   { month: "Jan", adherence: 95 },
   { month: "Feb", adherence: 92 },
@@ -125,70 +85,21 @@ const medicationTimingData = [
   { time: "Bedtime", count: 20 },
 ]
 
-// Colors for charts
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 
-// Custom active shape for pie chart
-const renderActiveShape = (props) => {
-  const { 
-    cx, cy, innerRadius, outerRadius, startAngle, endAngle,
-    fill, payload, percent, value 
-  } = props;
-  
-  return (
-    <g>
-      <text x={cx} y={cy} dy={-20} textAnchor="middle" fill={fill}>{payload.name}</text>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#333">{`${value}%`}</text>
-      <text x={cx} y={cy} dy={25} textAnchor="middle" fill="#999">{`(${(percent * 100).toFixed(0)}%)`}</text>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-      <Sector
-        cx={cx}
-        cy={cy}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        innerRadius={outerRadius + 6}
-        outerRadius={outerRadius + 10}
-        fill={fill}
-      />
-    </g>
-  );
-};
 
 export default function PatientDashboard() {
-  const [date, setDate] = useState(new Date())
-  const [todaysMeds, setTodaysMeds] = useState(medications.filter(med => med.status === "active"))
-  const [activeIndex, setActiveIndex] = useState(0)
+  
+
+  const [date, setDate] = useState<Date | undefined>(new Date())
   
   interface UserData {
     name: string;
     // Add other user data fields as needed
   }
-
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-
-  // Function to handle medication taken status toggle
-  const handleMedicationStatus = (id: number, taken: boolean) => {
-    setTodaysMeds(prevMeds => 
-      prevMeds.map(med => 
-        med.id === id ? { ...med, taken } : med
-      )
-    )
-    
-    // This would be where we'd call the API to update the status
-    // axios.post('/api/medications/status', { id, taken })
-    //   .then(response => console.log('Status updated'))
-    //   .catch(error => console.error('Error updating status:', error))
-  }
 
   useEffect(() => {
     // Check if token exists in localStorage
@@ -205,24 +116,20 @@ export default function PatientDashboard() {
       }
       
       try {
-        // Token exists, fetch user data - COMMENTED OUT as requested
-        
-        const response = await axios.get('/api/users/me', {
+        // Token exists, fetch user data
+        const response = await fetch('/api/users/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
         
-        if (response.status !== 200) {
+        if (!response.ok) {
           // Invalid token or other API error
           throw new Error('Failed to fetch user data')
         }
         
-        setUserData(response.data.user)
-        
-        
-        // Mock user data instead
-        // setUserData({ name: "John Doe" })
+        const data = await response.json()
+        setUserData(data.user)
                 
       } catch (error) {
         console.error('Authentication error:', error)
@@ -234,20 +141,7 @@ export default function PatientDashboard() {
       }
     }
     
-    // Fetch medications - COMMENTED OUT as requested
-    /*
-    const fetchMedications = async () => {
-      try {
-        const response = await axios.get('/api/medications')
-        setTodaysMeds(response.data.filter(med => med.status === "active"))
-      } catch (error) {
-        console.error('Error fetching medications:', error)
-      }
-    }
-    */
-    
     checkAuth()
-    // fetchMedications()
   }, [router])
 
   const [medications, setMedications] = useState<any[]>([]);
@@ -310,8 +204,7 @@ export default function PatientDashboard() {
           endDate: '',
           prescribedBy: userData?.name || '',
           patient: userData?.name || '',
-          notes: '',
-          timeOfDay: [] as string[],
+          notes: ''
         });
         setShowForm(false);
       } else {
@@ -354,14 +247,14 @@ export default function PatientDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todaysMeds.map((med) => (
+              {medications.filter((med) => med.status === "active").map((med) => (
                   <div key={med.id} className="flex items-start space-x-3">
                     <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-full">
                       <Pill className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>
-                    <div className="space-y-1 flex-grow">
+                    <div className="space-y-1">
                       <div className="flex items-center">
-                        <h4 className="font-medium">{med.name}</h4>
+                        <h4 className="font-medium">{med.medication}</h4>
                         <Badge variant="outline" className="ml-2 text-xs">
                           {med.dosage}
                         </Badge>
@@ -372,48 +265,28 @@ export default function PatientDashboard() {
                       </div>
                       <div className="text-xs text-muted-foreground">Prescribed by {med.prescribedBy}</div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className={`px-3 ${getStatusButtonStyle(med.taken)}`}
-                        onClick={() => handleMedicationStatus(med.id, true)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className={`px-3 ${getStatusButtonStyle(!med.taken)}`}
-                        onClick={() => handleMedicationStatus(med.id, false)}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        
-                      </Button>
-                    </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Medication Adherence</CardTitle>
               <CardDescription>Last 7 days</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="flex-grow h-[180px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={adherenceData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Bar dataKey="adherence" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+            <CardContent>
+              <div className="h-[180px]">
+                <ChartContainer data={adherenceData} xAxisKey="date" yAxisKey="adherence" className="h-full">
+                  <ChartGrid />
+                  <ChartBar x="date" y="adherence" className="fill-green-500/80" />
+                  <ChartXAxis />
+                  <ChartYAxis />
+                  <ChartTooltip>
+                    <ChartTooltipContent />
+                  </ChartTooltip>
+                </ChartContainer>
               </div>
               <div className="mt-2 text-center">
                 <span className="text-sm font-medium">Weekly Adherence:</span>{" "}
@@ -422,137 +295,107 @@ export default function PatientDashboard() {
             </CardContent>
           </Card>
 
-          {/* <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
-                Potential Interactions
-              </CardTitle>
-              <CardDescription>Medications that may interact with each other</CardDescription>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Medication Calendar</CardTitle>
+              <CardDescription>Schedule overview</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border p-4 bg-amber-50 dark:bg-amber-950/20">
-                <div className="flex items-start space-x-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-amber-700 dark:text-amber-400">Mild Interaction Detected</h4>
-                    <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
-                      Lisinopril and Metformin may cause a mild interaction. Monitor your blood pressure regularly.
-                    </p>
-                    <Button variant="link" className="p-0 h-auto text-amber-700 dark:text-amber-400 mt-2">
-                      Learn more
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-lg border p-4 bg-green-50 dark:bg-green-950/20">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-green-700 dark:text-green-400">No Severe Interactions</h4>
-                    <p className="text-sm text-green-600 dark:text-green-300 mt-1">
-                      Your current medication regimen has no severe interactions detected.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md border" />
             </CardContent>
-          </Card> */}
-          <MedicationInteractions 
-  medications={todaysMeds.map(med => med.name)} 
-/>
+          </Card>
         </div>
 
-        {/* Dashboard Charts replacing Health Metrics History - NOW USING RECHARTS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-blue-500" />
-                Monthly Adherence
-              </CardTitle>
-              <CardDescription>6-month adherence trend</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="flex-grow h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsLineChart data={monthlyAdherenceData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis domain={[80, 100]} />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="adherence" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </RechartsLineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <PieChart className="h-5 w-5 mr-2 text-indigo-500" />
-                Medication Types
-              </CardTitle>
-              <CardDescription>Breakdown by category</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col justify-center">
-              <div className="flex-grow h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      activeIndex={activeIndex}
-                      activeShape={renderActiveShape}
-                      data={medicationTypeData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      onMouseEnter={onPieEnter}
-                    >
-                      {medicationTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          
+  {/* Monthly Adherence */}
+  <Card className="flex flex-col">
+    <CardHeader>
+      <CardTitle className="flex items-center">
+        <LineChart className="h-5 w-5 mr-2 text-blue-500" />
+        Monthly Adherence
+      </CardTitle>
+      <CardDescription>6-month adherence trend</CardDescription>
+    </CardHeader>
+    <CardContent className="flex-grow flex flex-col">
+      <div className="flex-grow h-[200px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsLineChart data={monthlyAdherenceData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis domain={[80, 100]} />
+            <Tooltip />
+            <Line 
+              type="monotone" 
+              dataKey="adherence" 
+              stroke="#3b82f6" 
+              strokeWidth={3}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </RechartsLineChart>
+        </ResponsiveContainer>
+      </div>
+    </CardContent>
+  </Card>
 
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-purple-500" />
-                Medication Timing
-              </CardTitle>
-              <CardDescription>When medications are taken</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="flex-grow h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={medicationTimingData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#9333ea" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+  {/* Medication Types */}
+  <Card className="flex flex-col">
+    <CardHeader>
+      <CardTitle className="flex items-center">
+        <BarChart4 className="h-5 w-5 mr-2 text-indigo-500" />
+        Medication Types
+      </CardTitle>
+      <CardDescription>Breakdown by category</CardDescription>
+    </CardHeader>
+    <CardContent className="flex-grow flex justify-center">
+      <div className="h-[200px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsPieChart>
+            <Pie
+              data={medicationTypeData}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {medicationTypeData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+          </RechartsPieChart>
+        </ResponsiveContainer>
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Medication Timing */}
+  <Card className="flex flex-col">
+    <CardHeader>
+      <CardTitle className="flex items-center">
+        <Clock className="h-5 w-5 mr-2 text-purple-500" />
+        Medication Timing
+      </CardTitle>
+      <CardDescription>When medications are taken</CardDescription>
+    </CardHeader>
+    <CardContent className="flex-grow">
+      <div className="h-[200px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsBarChart data={medicationTimingData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="count" fill="#9333ea" radius={[4, 4, 0, 0]} />
+          </RechartsBarChart>
+        </ResponsiveContainer>
+      </div>
+    </CardContent>
+  </Card>
+</div>
 
         <Tabs defaultValue="health" className="mb-8">
         <Tabs defaultValue="health" className="mb-8">
@@ -624,83 +467,52 @@ export default function PatientDashboard() {
 
   {/* TabsContent: Medications */}
   <TabsContent value="medications">
-  {showForm && (
-  <div className="mb-6 border p-4 rounded-md space-y-4 bg-muted">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <input
-        className="p-2 border rounded"
-        placeholder="Medication Name"
-        value={formData.medication}
-        onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Dosage"
-        value={formData.dosage}
-        onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Frequency"
-        value={formData.frequency}
-        onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Prescribed By (Doctor's Name)"
-        value={formData.prescribedBy}
-        onChange={(e) => setFormData({ ...formData, prescribedBy: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        type="date"
-        value={formData.startDate}
-        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        type="date"
-        value={formData.endDate}
-        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-      />
-    </div>
-
-    <fieldset className="border rounded p-4">
-      <legend className="text-sm font-medium">Time of Day</legend>
-      <div className="grid grid-cols-2 gap-2 mt-2">
-        {["Morning", "Afternoon", "Evening", "Night"].map((time) => (
-          <label key={time} className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={formData.timeOfDay?.includes(time)}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setFormData((prev) => ({
-                  ...prev,
-                  timeOfDay: checked
-                    ? [...(prev.timeOfDay || []), time]
-                    : (prev.timeOfDay || []).filter((t) => t !== time),
-                }));
-              }}
-            />
-            <span>{time}</span>
-          </label>
-        ))}
+    {showForm && (
+      <div className="mb-6 border p-4 rounded-md space-y-4 bg-muted">
+        {/* Form fields here */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            className="p-2 border rounded"
+            placeholder="Medication Name"
+            value={formData.medication}
+            onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
+          />
+          <input
+            className="p-2 border rounded"
+            placeholder="Dosage"
+            value={formData.dosage}
+            onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+          />
+          <input
+            className="p-2 border rounded"
+            placeholder="Frequency"
+            value={formData.frequency}
+            onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+          />
+          <input
+            className="p-2 border rounded"
+            type="date"
+            value={formData.startDate}
+            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+          />
+          <input
+            className="p-2 border rounded"
+            type="date"
+            value={formData.endDate}
+            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+          />
+        </div>
+        <textarea
+          className="w-full p-2 border rounded"
+          placeholder="Notes"
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+        />
+        <div className="text-right">
+          <Button onClick={handleAddMedication}>Submit</Button>
+        </div>
       </div>
-    </fieldset>
-
-    <textarea
-      className="w-full p-2 border rounded"
-      placeholder="Notes"
-      value={formData.notes}
-      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-    />
-    <div className="text-right">
-      <Button onClick={handleAddMedication}>Submit</Button>
-    </div>
-  </div>
-)}
-
+    )}
 
     {/* Medication History List */}
     <Card>
@@ -895,10 +707,51 @@ export default function PatientDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <MedicationInteractions 
+            medications={todaysMeds.map((med: { name: any }) => med.name)} 
+          />
+          {/* <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
+                Potential Interactions
+              </CardTitle>
+              <CardDescription>Medications that may interact with each other</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border p-4 bg-amber-50 dark:bg-amber-950/20">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-amber-700 dark:text-amber-400">Mild Interaction Detected</h4>
+                    <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
+                      Lisinopril and Metformin may cause a mild interaction. Monitor your blood pressure regularly.
+                    </p>
+                    <Button variant="link" className="p-0 h-auto text-amber-700 dark:text-amber-400 mt-2">
+                      Learn more
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border p-4 bg-green-50 dark:bg-green-950/20">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-green-700 dark:text-green-400">No Severe Interactions</h4>
+                    <p className="text-sm text-green-600 dark:text-green-300 mt-1">
+                      Your current medication regimen has no severe interactions detected.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card> */}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -943,24 +796,6 @@ export default function PatientDashboard() {
                     Monitor blood sugar levels twice weekly
                   </li>
                 </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Medication Calendar with better alignment */}
-          <Card className="flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Medication Calendar</CardTitle>
-              <CardDescription>Schedule overview</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex items-center justify-center">
-              <div className="w-full max-w-sm">
-                <Calendar 
-                  mode="single" 
-                  selected={date} 
-                  onSelect={setDate} 
-                  className="rounded-md border mx-auto" 
-                />
               </div>
             </CardContent>
           </Card>

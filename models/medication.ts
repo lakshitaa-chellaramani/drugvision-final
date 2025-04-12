@@ -1,17 +1,17 @@
 import mongoose from 'mongoose';
 
 const MedicationSchema = new mongoose.Schema({
-  medication:{
+  medication: {
     type: String,
-    required:true
+    required: true,
   },
   drugs: [
     {
       name: {
         type: String,
         required: true,
-      }
-    }
+      },
+    },
   ],
   dosage: {
     type: String,
@@ -20,6 +20,11 @@ const MedicationSchema = new mongoose.Schema({
   frequency: {
     type: String,
     required: true,
+  },
+  timeOfDay: {
+    type: [String],
+    enum: ['morning', 'afternoon', 'evening', 'night'],
+    default: [],
   },
   startDate: {
     type: Date,

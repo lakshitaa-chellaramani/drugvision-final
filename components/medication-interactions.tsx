@@ -1,97 +1,78 @@
-// components/MedicationInteractions.tsx
-import { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 
 interface Interaction {
-  _id: string;
-  drug1: string;
-  drug2: string;
-  severity: number;
-  description: string;
-  date: string;
+  drug1: string
+  drug2: string
+  severity: number
+  description: string
+  evidenceLevel: string
 }
 
-interface MedicationInteractionsProps {
-  patientId?: string;
-  medications?: string[];
-}
-
-export default function MedicationInteractions({ patientId, medications }: MedicationInteractionsProps) {
-  const [interactions, setInteractions] = useState<Interaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function MedicationInteractions() {
+  const [interactions, setInteractions] = useState<Interaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchInteractions() {
       try {
-        setLoading(true);
-        let url = '/api/interactions';
-        if (patientId) {
-          url += `?patient=${patientId}`;
-        }
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Failed to fetch interactions');
-        }
-        
-        const data = await response.json();
-        setInteractions(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchInteractions();
-  }, [patientId]);
+        setLoading(true)
 
-  // Check if we need to create new interactions based on medications
-  useEffect(() => {
-    async function checkForNewInteractions() {
-      if (!medications || medications.length < 2) return;
-      
-      // For all possible medication pairs
-      for (let i = 0; i < medications.length; i++) {
-        for (let j = i + 1; j < medications.length; j++) {
-          // Check if we already have this interaction
-          const existingInteraction = interactions.find(
-            int => (int.drug1 === medications[i] && int.drug2 === medications[j]) || 
-                  (int.drug1 === medications[j] && int.drug2 === medications[i])
-          );
-          
-          if (!existingInteraction) {
-            try {
-              // Create a new interaction record
-              const response = await fetch('/api/interactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  drug1: medications[i], 
-                  drug2: medications[j],
-                  patientId: patientId 
-                })
-              });
-              
-              if (response.ok) {
-                const newInteraction = await response.json();
-                setInteractions(prev => [...prev, newInteraction]);
-              }
-            } catch (err) {
-              console.error("Failed to create interaction:", err);
-            }
-          }
+        // 1. Get token and user
+        const token = localStorage.getItem('token')
+        if (!token) throw new Error('User not authenticated')
+
+        const userRes = await fetch('/api/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const userData = await userRes.json()
+        const username = userData?.user?.name?.toLowerCase()
+
+        // 2. Fetch all medications
+        const medRes = await fetch('/api/medications')
+        const medData = await medRes.json()
+        const meds = medData.medications || []
+
+        const userMeds = meds.filter(
+          (med: any) => med.patient?.toLowerCase() === username
+        )
+
+        const drugList = [
+          ...new Set(
+            userMeds.flatMap((med: any) => med.drugs?.map((d: any) => d.name))
+          ),
+        ]
+
+        if (drugList.length < 2) {
+          setInteractions([])
+          setLoading(false)
+          return
         }
+
+        // 3. Send to Gemini
+        const res = await fetch('/api/interactions/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ drugs: drugList }),
+        })
+
+        if (!res.ok) throw new Error('Failed to analyze interactions')
+
+        const result = await res.json()
+        setInteractions(result.interactions || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
       }
     }
-    
-    if (interactions.length > 0) {
-      checkForNewInteractions();
-    }
-  }, [medications, interactions, patientId]);
+
+    fetchInteractions()
+  }, [])
 
   if (loading) {
     return (
@@ -100,7 +81,7 @@ export default function MedicationInteractions({ patientId, medications }: Medic
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (error) {
@@ -110,13 +91,41 @@ export default function MedicationInteractions({ patientId, medications }: Medic
           <p className="text-red-500">Error: {error}</p>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  // Filter to show only severe and moderate interactions in main display
-  const severeInteractions = interactions.filter(int => int.severity >= 7);
-  const moderateInteractions = interactions.filter(int => int.severity >= 4 && int.severity < 7);
-  const mildInteractions = interactions.filter(int => int.severity < 4);
+  const severe = interactions.filter(i => i.severity >= 7)
+  const moderate = interactions.filter(i => i.severity >= 4 && i.severity < 7)
+  const mild = interactions.filter(i => i.severity < 4)
+
+  const renderSection = (
+    title: string,
+    icon: any,
+    color: string,
+    items: Interaction[]
+  ) => (
+    <div className={`rounded-lg border p-4 bg-${color}-50 dark:bg-${color}-950/20 mb-4`}>
+      <div className="flex items-start space-x-3">
+        {icon}
+        <div>
+          <h4 className={`font-medium text-${color}-700 dark:text-${color}-400`}>{title}</h4>
+          {items.map((int, i) => (
+            <div key={i} className="mt-2 pb-2 border-b last:border-b-0">
+              <p className={`text-sm font-medium text-${color}-600 dark:text-${color}-300`}>
+                {int.drug1} + {int.drug2}
+              </p>
+              <p className={`text-sm text-${color}-600 dark:text-${color}-300 mt-1`}>
+                {int.description} <br />
+                <span className="text-xs italic">
+                  Severity: {int.severity}/10 • Evidence: {int.evidenceLevel}
+                </span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <Card>
@@ -125,79 +134,13 @@ export default function MedicationInteractions({ patientId, medications }: Medic
           <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
           Potential Interactions
         </CardTitle>
-        <CardDescription>Medications that may interact with each other</CardDescription>
+        <CardDescription>AI-detected drug interactions</CardDescription>
       </CardHeader>
       <CardContent>
-        {severeInteractions.length > 0 && (
-          <div className="rounded-lg border p-4 bg-red-50 dark:bg-red-950/20 mb-4">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-red-700 dark:text-red-400">Severe Interactions Detected</h4>
-                {severeInteractions.map((interaction) => (
-                  <div key={interaction._id} className="mt-2 pb-2 border-b border-red-100 dark:border-red-800/50 last:border-b-0 last:pb-0">
-                    <p className="text-sm font-medium text-red-600 dark:text-red-300">
-                      {interaction.drug1} + {interaction.drug2}
-                    </p>
-                    <p className="text-sm text-red-600 dark:text-red-300 mt-1">
-                      {interaction.description}
-                    </p>
-                  </div>
-                ))}
-                <Button variant="link" className="p-0 h-auto text-red-700 dark:text-red-400 mt-2">
-                  Learn more
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {moderateInteractions.length > 0 && (
-          <div className="rounded-lg border p-4 bg-amber-50 dark:bg-amber-950/20 mb-4">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-amber-700 dark:text-amber-400">Moderate Interactions Detected</h4>
-                {moderateInteractions.map((interaction) => (
-                  <div key={interaction._id} className="mt-2 pb-2 border-b border-amber-100 dark:border-amber-800/50 last:border-b-0 last:pb-0">
-                    <p className="text-sm font-medium text-amber-600 dark:text-amber-300">
-                      {interaction.drug1} + {interaction.drug2}
-                    </p>
-                    <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
-                      {interaction.description}
-                    </p>
-                  </div>
-                ))}
-                <Button variant="link" className="p-0 h-auto text-amber-700 dark:text-amber-400 mt-2">
-                  Learn more
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {mildInteractions.length > 0 && (
-          <div className="rounded-lg border p-4 bg-blue-50 dark:bg-blue-950/20 mb-4">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-blue-500 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-blue-700 dark:text-blue-400">Mild Interactions Detected</h4>
-                {mildInteractions.map((interaction) => (
-                  <div key={interaction._id} className="mt-2 pb-2 border-b border-blue-100 dark:border-blue-800/50 last:border-b-0 last:pb-0">
-                    <p className="text-sm font-medium text-blue-600 dark:text-blue-300">
-                      {interaction.drug1} + {interaction.drug2}
-                    </p>
-                    <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                      {interaction.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {severeInteractions.length === 0 && moderateInteractions.length === 0 && mildInteractions.length === 0 && (
+        {severe.length > 0 && renderSection('Severe Interactions', <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />, 'red', severe)}
+        {moderate.length > 0 && renderSection('Moderate Interactions', <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />, 'amber', moderate)}
+        {mild.length > 0 && renderSection('Mild Interactions', <AlertTriangle className="h-5 w-5 text-blue-500 mt-0.5" />, 'blue', mild)}
+        {interactions.length === 0 && (
           <div className="rounded-lg border p-4 bg-green-50 dark:bg-green-950/20">
             <div className="flex items-start space-x-3">
               <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
@@ -212,5 +155,5 @@ export default function MedicationInteractions({ patientId, medications }: Medic
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

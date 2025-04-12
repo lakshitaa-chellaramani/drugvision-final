@@ -204,7 +204,8 @@ export default function PatientDashboard() {
           endDate: '',
           prescribedBy: userData?.name || '',
           patient: userData?.name || '',
-          notes: ''
+          notes: '',
+          timeOfDay: [] as string[],
         });
         setShowForm(false);
       } else {
@@ -467,52 +468,83 @@ export default function PatientDashboard() {
 
   {/* TabsContent: Medications */}
   <TabsContent value="medications">
-    {showForm && (
-      <div className="mb-6 border p-4 rounded-md space-y-4 bg-muted">
-        {/* Form fields here */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            className="p-2 border rounded"
-            placeholder="Medication Name"
-            value={formData.medication}
-            onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
-          />
-          <input
-            className="p-2 border rounded"
-            placeholder="Dosage"
-            value={formData.dosage}
-            onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
-          />
-          <input
-            className="p-2 border rounded"
-            placeholder="Frequency"
-            value={formData.frequency}
-            onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-          />
-          <input
-            className="p-2 border rounded"
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-          />
-          <input
-            className="p-2 border rounded"
-            type="date"
-            value={formData.endDate}
-            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-          />
-        </div>
-        <textarea
-          className="w-full p-2 border rounded"
-          placeholder="Notes"
-          value={formData.notes}
-          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-        />
-        <div className="text-right">
-          <Button onClick={handleAddMedication}>Submit</Button>
-        </div>
+  {showForm && (
+  <div className="mb-6 border p-4 rounded-md space-y-4 bg-muted">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <input
+        className="p-2 border rounded"
+        placeholder="Medication Name"
+        value={formData.medication}
+        onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
+      />
+      <input
+        className="p-2 border rounded"
+        placeholder="Dosage"
+        value={formData.dosage}
+        onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+      />
+      <input
+        className="p-2 border rounded"
+        placeholder="Frequency"
+        value={formData.frequency}
+        onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+      />
+      <input
+        className="p-2 border rounded"
+        placeholder="Prescribed By (Doctor's Name)"
+        value={formData.prescribedBy}
+        onChange={(e) => setFormData({ ...formData, prescribedBy: e.target.value })}
+      />
+      <input
+        className="p-2 border rounded"
+        type="date"
+        value={formData.startDate}
+        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+      />
+      <input
+        className="p-2 border rounded"
+        type="date"
+        value={formData.endDate}
+        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+      />
+    </div>
+
+    <fieldset className="border rounded p-4">
+      <legend className="text-sm font-medium">Time of Day</legend>
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        {["Morning", "Afternoon", "Evening", "Night"].map((time) => (
+          <label key={time} className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.timeOfDay?.includes(time)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setFormData((prev) => ({
+                  ...prev,
+                  timeOfDay: checked
+                    ? [...(prev.timeOfDay || []), time]
+                    : (prev.timeOfDay || []).filter((t) => t !== time),
+                }));
+              }}
+            />
+            <span>{time}</span>
+          </label>
+        ))}
       </div>
-    )}
+    </fieldset>
+
+    <textarea
+      className="w-full p-2 border rounded"
+      placeholder="Notes"
+      value={formData.notes}
+      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+    />
+    <div className="text-right">
+      <Button onClick={handleAddMedication}>Submit</Button>
+    </div>
+  </div>
+)}
+
 
     {/* Medication History List */}
     <Card>

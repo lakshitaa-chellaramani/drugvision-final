@@ -1,7 +1,7 @@
 import { dbConnect } from '@/lib/dbConnect';
 import Medication from '@/models/medication';
 
-export async function POST(req: { json: () => any; }) {
+export async function POST(req: { json: () => any }) {
   try {
     await dbConnect();
 
@@ -10,12 +10,13 @@ export async function POST(req: { json: () => any; }) {
       medication,
       dosage,
       frequency,
+      timeOfDay = [],  // ✅ new field
       startDate,
       endDate,
       status = 'active',
       prescribedBy,
       patient,
-      notes
+      notes,
     } = body;
 
     if (!medication || !dosage || !frequency || !startDate) {
@@ -34,13 +35,14 @@ export async function POST(req: { json: () => any; }) {
       return new Response(JSON.stringify({ error: 'Failed to extract drugs' }), { status: 500 });
     }
 
-    const drugsArray = result.drugs.map((name) => ({ name }));
+    const drugsArray = result.drugs.map((name: string) => ({ name }));
 
     const newMed = await Medication.create({
       medication,
       drugs: drugsArray,
       dosage,
       frequency,
+      timeOfDay, // ✅ store the checkbox values
       startDate,
       endDate,
       status,

@@ -175,7 +175,7 @@ export default function DoctorDashboard() {
                         onClick={() => handlePatientSelect(patient)}
                       >
                         <div className="flex items-center space-x-4">
-                          <Avatar>
+                          {/* <Avatar>
                             <AvatarImage src={patient.avatar || "/placeholder.svg"} alt={patient.name} />
                             <AvatarFallback>
                               {patient.name
@@ -185,7 +185,7 @@ export default function DoctorDashboard() {
                                     .join("")
                                 : "?"}
                             </AvatarFallback>
-                          </Avatar>
+                          </Avatar> */}
                           <div>
                             <h3 className="font-medium">{patient.name}</h3>
                             <div className="text-sm text-muted-foreground">
@@ -233,7 +233,7 @@ export default function DoctorDashboard() {
                 {selectedPatient ? (
                   <div className="space-y-6">
                     <div className="flex items-center space-x-4">
-                      <Avatar className="h-16 w-16">
+                      {/* <Avatar className="h-16 w-16">
                         <AvatarImage src={selectedPatient.avatar || "/placeholder.svg"} alt={selectedPatient.name} />
                         <AvatarFallback>
                           {selectedPatient.name
@@ -241,7 +241,7 @@ export default function DoctorDashboard() {
                             .map((n) => n[0])
                             .join("")}
                         </AvatarFallback>
-                      </Avatar>
+                      </Avatar> */}
                       <div>
                         <h2 className="text-xl font-bold">{selectedPatient.name}</h2>
                         <p className="text-muted-foreground">{selectedPatient.age} years old</p>

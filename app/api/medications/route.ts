@@ -6,6 +6,7 @@ export async function POST(req: { json: () => any }) {
     await dbConnect();
 
     const body = await req.json();
+    console.log('POST /api/medications body:', body);
     const {
       medication,
       dosage,
@@ -51,6 +52,7 @@ export async function POST(req: { json: () => any }) {
       notes,
     });
 
+    console.log('New medication created:', newMed);
     return new Response(JSON.stringify({ success: true, medication: newMed }), {
       status: 201,
     });

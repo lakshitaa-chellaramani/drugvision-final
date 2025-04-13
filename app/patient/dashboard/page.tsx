@@ -250,7 +250,7 @@ export default function PatientDashboard() {
             <CardContent>
               <div className="space-y-4">
               {medications.filter((med) => med.status === "active").map((med) => (
-                  <div key={med.id} className="flex items-start space-x-3">
+                  <div key={med._id} className="flex items-start space-x-3">
                     <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-full">
                       <Pill className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>

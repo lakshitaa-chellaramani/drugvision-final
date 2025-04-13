@@ -12,7 +12,7 @@ export async function POST(req) {
       const GEMINI_API_KEY = "AIzaSyAmNwK1mscfNky7a37zZQGBqRfpC_1uBH0";
       const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
   
-      const prompt = `What drugs are present in the medicine ${medicine}? Only list drug names in plain words, comma-separated, no explanation.;`
+      const prompt = `What drugs are present in the medicine ${medicine}? Only list drug names in plain words, comma-separated and also mention the drug name with that, no explanation.;`
   
       const payload = {
         contents: [

@@ -26,7 +26,7 @@ const navItems = [
   },
   {
     name: "Upload Prescriptions",
-    href: "/patient/uploaddemo",
+    href: "/patient/upload2",
     icon: Upload,
   },
   {

@@ -114,8 +114,10 @@ export function DoctorNavbar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
+              <Link href="/" className="flex items-center">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,4 +1,4 @@
-import { connectDB } from '@/lib/db';
+import { dbConnect } from '@/lib/dbConnect';
 import Adherence from '@/models/adherence';
 import { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
@@ -12,7 +12,7 @@ interface AdherenceBody {
 }
 
 export async function GET(req: NextRequest) {
-  await connectDB();
+  await dbConnect();
   const { searchParams } = new URL(req.url);
   const medicationId = searchParams.get('medicationId');
   const date = searchParams.get('date');

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
-import { Pill, Clock, CalendarIcon, Activity, AlertTriangle, CheckCircle2, BarChart4, LineChart } from "lucide-react"
+import { Pill, Clock, CalendarIcon, Activity, FileText, Plus , AlertTriangle, CheckCircle2, BarChart4, LineChart, User } from "lucide-react"
 import {
   ChartContainer,
   ChartTooltip,
@@ -187,7 +187,7 @@ export default function PatientDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          prescribedBy: userData?.name || 'unknown',
+          // prescribedBy: userData?.name || 'unknown',
           patient: userData?.name || 'unknown'
         })
       });
@@ -297,7 +297,11 @@ export default function PatientDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <MedicationInteractions 
+            medications={todaysMeds.map((med: { name: any }) => med.name)} 
+          />
+
+          {/* <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Medication Calendar</CardTitle>
               <CardDescription>Schedule overview</CardDescription>
@@ -305,7 +309,7 @@ export default function PatientDashboard() {
             <CardContent>
               <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md border" />
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -315,7 +319,7 @@ export default function PatientDashboard() {
   <Card className="flex flex-col">
     <CardHeader>
       <CardTitle className="flex items-center">
-        <LineChart className="h-5 w-5 mr-2 text-blue-500" />
+        <LineChart className="h-5 w-5 mr-2 text-green-500" />
         Monthly Adherence
       </CardTitle>
       <CardDescription>6-month adherence trend</CardDescription>
@@ -470,82 +474,158 @@ export default function PatientDashboard() {
 
   {/* TabsContent: Medications */}
   <TabsContent value="medications">
+  
   {showForm && (
-  <div className="mb-6 border p-4 rounded-md space-y-4 bg-muted">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <input
-        className="p-2 border rounded"
-        placeholder="Medication Name"
-        value={formData.medication}
-        onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Dosage"
-        value={formData.dosage}
-        onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Frequency"
-        value={formData.frequency}
-        onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        placeholder="Prescribed By (Doctor's Name)"
-        value={formData.prescribedBy}
-        onChange={(e) => setFormData({ ...formData, prescribedBy: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        type="date"
-        value={formData.startDate}
-        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-      />
-      <input
-        className="p-2 border rounded"
-        type="date"
-        value={formData.endDate}
-        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-      />
-    </div>
+        <div className="mb-6 border border-gray-200 p-6 rounded-lg shadow-sm space-y-6 bg-white">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <Pill className="mr-2" size={20} />
+            Add New Medication
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Medication Name*</label>
+              <div className="relative">
+                <Pill className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                <input
+                  className="pl-9 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter medication name"
+                  value={formData.medication}
+                  onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Dosage*</label>
+              <input
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="e.g., 10mg, 1 tablet"
+                value={formData.dosage}
+                onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Frequency*</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                value={formData.frequency}
+                onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+              >
+                <option value="">Select frequency</option>
+                <option value="once a day">Once daily</option>
+                <option value="twice a day">Twice daily</option>
+                <option value="alternate days">Alternate days</option>
+                <option value="as needed">As needed</option>
+                <option value="once a week">Weekly</option>
 
-    <fieldset className="border rounded p-4">
-      <legend className="text-sm font-medium">Time of Day</legend>
-      <div className="grid grid-cols-2 gap-2 mt-2">
-        {["morning", "afternoon", "evening", "ight"].map((time) => (
-          <label key={time} className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={formData.timeOfDay?.includes(time)}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setFormData((prev) => ({
-                  ...prev,
-                  timeOfDay: checked
-                    ? [...(prev.timeOfDay || []), time]
-                    : (prev.timeOfDay || []).filter((t) => t !== time),
-                }));
-              }}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Prescribed By</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                <input
+                  className="pl-9 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Doctor's name"
+                  value={formData.prescribedBy}
+                  onChange={(e) => setFormData({ ...formData, prescribedBy: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Start Date</label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                <input
+                  className="pl-9 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">End Date (if applicable)</label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                <input
+                  className="pl-9 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 flex items-center">
+              <Clock className="mr-2" size={16} />
+              Time of Day
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+              {["Morning", "Afternoon", "Evening", "Night"].map((time) => (
+                <div key={time} className="flex items-center space-x-2 border border-gray-200 rounded-md p-2 hover:bg-gray-50">
+                  <input
+                    id={`time-${time.toLowerCase()}`}
+                    type="checkbox"
+                    className="h-4 w-4 text-green-600 rounded"
+                    checked={formData.timeOfDay?.includes(time.toLowerCase())}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormData((prev) => ({
+                        ...prev,
+                        timeOfDay: checked
+                          ? [...(prev.timeOfDay || []), time.toLowerCase()]
+                          : (prev.timeOfDay || []).filter((t) => t !== time.toLowerCase()),
+                      }));
+                    }}
+                  />
+                  <label htmlFor={`time-${time.toLowerCase()}`} className="text-sm text-gray-700">{time}</label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 flex items-center">
+              <FileText className="mr-2" size={16} />
+              Notes
+            </label>
+            <textarea
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              placeholder="Add special instructions or side effects to watch for"
+              rows={3}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
-            <span>{time}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-
-    <textarea
-      className="w-full p-2 border rounded"
-      placeholder="Notes"
-      value={formData.notes}
-      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-    />
-    <div className="text-right">
-      <Button onClick={handleAddMedication}>Submit</Button>
-    </div>
-  </div>
-)}
+          </div>
+          
+          <div className="flex justify-between items-center pt-2">
+            <p className="text-sm text-gray-500">* Required fields</p>
+            <div className="space-x-3">
+              {/* <button 
+                onClick={() => setShowForm(false)}
+                className="py-2 px-4 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button> */}
+              <button
+                onClick={handleAddMedication}
+                className="py-2 px-6 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+              >
+                <Plus size={16} className="mr-1" />
+                Add Medication
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     {/* Medication History List */}
@@ -650,7 +730,7 @@ export default function PatientDashboard() {
                 <div className="h-[300px]">
                   <ChartContainer data={healthMetricsData} xAxisKey="date" yAxisKey="bloodPressure" className="h-full">
                     <ChartGrid />
-                    <ChartLine x="date" y="bloodPressure" strokeWidth={2} className="stroke-blue-500" />
+                    <ChartLine x="date" y="bloodPressure" strokeWidth={2} className="stroke-green-500" />
                     <ChartLine x="date" y="bloodSugar" strokeWidth={2} className="stroke-green-500" />
                     <ChartLine x="date" y="cholesterol" strokeWidth={2} className="stroke-amber-500" />
                     <ChartXAxis />
@@ -659,7 +739,7 @@ export default function PatientDashboard() {
                       <ChartTooltipContent />
                     </ChartTooltip>
                     <ChartLegend className="mt-4">
-                      <ChartLegendItem name="Blood Pressure" color="blue" />
+                      <ChartLegendItem name="Blood Pressure" color="green" />
                       <ChartLegendItem name="Blood Sugar" color="green" />
                       <ChartLegendItem name="Cholesterol" color="amber" />
                     </ChartLegend>
@@ -744,10 +824,8 @@ export default function PatientDashboard() {
           </TabsContent> */}
         </Tabs>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <MedicationInteractions 
-            medications={todaysMeds.map((med: { name: any }) => med.name)} 
-          />
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        
           {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center">

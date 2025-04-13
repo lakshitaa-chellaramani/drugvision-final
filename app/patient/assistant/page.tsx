@@ -42,13 +42,6 @@ type Message = {
   timestamp: Date
 }
 
-// Sample medications for the medication profile
-// const userMedications = [
-//   { name: "Lisinopril", dosage: "10mg", frequency: "Daily", purpose: "Blood Pressure" },
-//   { name: "Metformin", dosage: "500mg", frequency: "Twice Daily", purpose: "Diabetes" },
-//   { name: "Atorvastatin", dosage: "20mg", frequency: "Daily at Night", purpose: "Cholesterol" }
-// ]
-
 export default function AIAssistant() {
 
   const [userData, setUserData] = useState<any>(null)
@@ -116,15 +109,6 @@ export default function AIAssistant() {
 
 
   const [medications, setMedications] = useState<any[]>([]);
-  // const fetchMedications = async () => {
-  //   try {
-  //     const res = await fetch("/api/medications");
-  //     const data = await res.json();
-  //     setMedications(data.medications || []);
-  //   } catch (err) {
-  //     console.error("Failed to fetch medications", err);
-  //   }
-  // };
   const [todaysMeds, setTodaysMeds] = useState(medications.filter(med => med.status === "active"))
   
 
@@ -226,15 +210,15 @@ useEffect(() => {
   
     try {
       const medicationsContext = medications.map(
-  (med) => `${med.medication} (${med.dosage}, ${med.frequency}, for ${med.purpose})`
-).join(", ");
-
+        (med) => `${med.medication} (${med.dosage}, ${med.frequency}, for ${med.purpose})`
+      ).join(", ");
 
       const enhancedPrompt = `User Info: Name - ${profile?.name || "Unknown"}.
       Patient Details: ${JSON.stringify(profile)}
   Current medications: ${medicationsContext}.
   User Question: ${messageText}.
-  DONT USE SYMBOLS Check every field(allergies and chronic conditions) before answering.Answer clearly, in simple and short language. Add any useful medical suggestions if relevant.I have also added my allergies and chronic conditions consider that too`
+  IMPORTANT: Format your response using HTML tags instead of markdown. Use <b></b> for bold, <i></i> for italics, <ul><li></li></ul> for lists, etc. Don't use markdown symbols like ** or __.
+  Check every field(allergies and chronic conditions) before answering. Answer clearly, in simple and short language. Add any useful medical suggestions if relevant. Consider allergies and chronic conditions too.`
   
       const response = await fetch(API_ENDPOINT, {
         method: "POST",
@@ -392,7 +376,14 @@ useEffect(() => {
                               : "bg-muted"
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          {message.role === "user" ? (
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          ) : (
+                            <p 
+                              className="text-sm whitespace-pre-wrap" 
+                              dangerouslySetInnerHTML={{ __html: message.content }}
+                            />
+                          )}
                         </div>
                         <div className="flex items-center mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-xs text-muted-foreground mr-2">

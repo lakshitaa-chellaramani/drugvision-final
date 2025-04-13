@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Pill, LayoutDashboard, Upload, MessageSquare, User, Settings, LogOut, Menu, X } from "lucide-react"
+import { Pill, LayoutDashboard, Upload, MessageSquare, User, Settings, LogOut, Menu, X, Clipboard } from "lucide-react"
 
 const navItems = [
   {
@@ -33,6 +33,11 @@ const navItems = [
     name: "AI Assistant",
     href: "/patient/assistant",
     icon: MessageSquare,
+  },
+  {
+    name: "HealthPlan",
+    href: "/patient/healthplan",
+    icon: Clipboard,
   },
 ]
 
@@ -113,11 +118,11 @@ export function PatientNavbar() {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-  <Link href="/patient/profile" className="flex items-center">
-    <User className="mr-2 h-4 w-4" />
-    <span>Profile</span>
-  </Link>
-</DropdownMenuItem>
+                <Link href="/patient/profile" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>

@@ -29,7 +29,7 @@ export default function PatientDashboardPage() {
     patient: patient?.name || '',
     notes: '',
     timeOfDay: [] as string[],
-});
+  });
 
   const fetchPatientByName = async (name: ParamValue) => {
     try {
@@ -55,7 +55,7 @@ export default function PatientDashboardPage() {
     }
   }
 
-  
+
   useEffect(() => {
     const fetchEverything = async () => {
       setLoading(true)
@@ -102,43 +102,43 @@ export default function PatientDashboardPage() {
   const medicationAdherence = calculateAdherence(medications)
 
 
- 
 
-const handleAddMedication = async () => {
-  try {
-    const res = await fetch("/api/medications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...newMedication,
-        patient: patient.name,
-      }),
-    });
 
-    if (res.ok) {
-      alert("Medication added successfully!");
-      const updatedMeds = await fetchMedicationsByName(patient.name);
-      setMedications(updatedMeds);
-      setShowForm(false);
-      setNewMedication({
-        medication: '',
-        dosage: '',
-        frequency: '',
-        startDate: '',
-        endDate: '',
-        prescribedBy: '',
-        notes: '',
-        timeOfDay: [],
+  const handleAddMedication = async () => {
+    try {
+      const res = await fetch("/api/medications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newMedication,
+          patient: patient.name,
+        }),
       });
-    } else {
-      const err = await res.json();
-      alert("Failed: " + err.error);
+
+      if (res.ok) {
+        alert("Medication added successfully!");
+        const updatedMeds = await fetchMedicationsByName(patient.name);
+        setMedications(updatedMeds);
+        setShowForm(false);
+        setNewMedication({
+          medication: '',
+          dosage: '',
+          frequency: '',
+          startDate: '',
+          endDate: '',
+          prescribedBy: '',
+          notes: '',
+          timeOfDay: [],
+        });
+      } else {
+        const err = await res.json();
+        alert("Failed: " + err.error);
+      }
+    } catch (err) {
+      console.error("Error adding medication:", err);
+      alert("An error occurred.");
     }
-  } catch (err) {
-    console.error("Error adding medication:", err);
-    alert("An error occurred.");
-  }
-};
+  };
 
 
   return (
@@ -328,102 +328,107 @@ const handleAddMedication = async () => {
           <TabsContent value="medications">
             <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
               <CardHeader className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <CardTitle className="flex items-center text-gray-800 dark:text-white">
-                  <Pill className="mr-2 h-5 w-5 text-green-600 dark:text-green-500" />
-                  Current Medications
-                </CardTitle>
-                <CardDescription className="dark:text-gray-400">Medications prescribed to {patient.name}</CardDescription>
-                
+                <div className="flex justify-between items-center w-full">
+                  <div className="flex items-center text-gray-800 dark:text-white">
+                    <Pill className="mr-2 h-5 w-5 text-green-600 dark:text-green-500" />
+                    <CardTitle>Current Medications</CardTitle>
+                  </div>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                    onClick={() => setShowForm(!showForm)}
+                  >
+                    {showForm ? "Close Form" : "Add Medication"}
+                  </Button>
+                </div>
+                <CardDescription className="dark:text-gray-400 mt-2">
+                  Medications prescribed to {patient.name}
+                </CardDescription>
               </CardHeader>
-              <div className="flex justify-end mb-4">
-  <Button
-    className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-    onClick={() => setShowForm(!showForm)}
-  >
-    {showForm ? "Close Form" : "Add Medication"}
-  </Button>
-</div>
 
-{showForm && (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border p-4 rounded-md bg-gray-50 dark:bg-gray-900">
-    <input
-      className="p-2 border rounded"
-      placeholder="Medication Name"
-      value={newMedication.medication}
-      onChange={(e) => setNewMedication({ ...newMedication, medication: e.target.value })}
-    />
-    <input
-      className="p-2 border rounded"
-      placeholder="Dosage (e.g., 10mg)"
-      value={newMedication.dosage}
-      onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-    />
-    <select
-      className="p-2 border rounded"
-      value={newMedication.frequency}
-      onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
-    >
-      <option value="">Select frequency</option>
-      <option value="once a day">Once a day</option>
-      <option value="twice a day">Twice a day</option>
-      <option value="alternate days">Alternate days</option>
-      <option value="as needed">As needed</option>
-    </select>
-    <input
-      type="date"
-      className="p-2 border rounded"
-      value={newMedication.startDate}
-      onChange={(e) => setNewMedication({ ...newMedication, startDate: e.target.value })}
-    />
-    <input
-      type="date"
-      className="p-2 border rounded"
-      value={newMedication.endDate}
-      onChange={(e) => setNewMedication({ ...newMedication, endDate: e.target.value })}
-    />
-    <input
-      className="p-2 border rounded"
-      placeholder="Prescribed By"
-      value={newMedication.prescribedBy}
-      onChange={(e) => setNewMedication({ ...newMedication, prescribedBy: e.target.value })}
-    />
-    <textarea
-      className="p-2 border rounded md:col-span-2"
-      rows={3}
-      placeholder="Notes"
-      value={newMedication.notes}
-      onChange={(e) => setNewMedication({ ...newMedication, notes: e.target.value })}
-    />
-    <div className="md:col-span-2">
-      <p className="font-medium mb-2">Time of Day</p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {["morning", "afternoon", "evening", "night"].map((time) => (
-          <label key={time} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={newMedication.timeOfDay.includes(time)}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setNewMedication((prev) => ({
-                  ...prev,
-                  timeOfDay: checked
-                    ? [...prev.timeOfDay, time]
-                    : prev.timeOfDay.filter((t) => t !== time),
-                }));
-              }}
-            />
-            {time[0].toUpperCase() + time.slice(1)}
-          </label>
-        ))}
-      </div>
-    </div>
-    <div className="md:col-span-2 flex justify-end mt-4">
-      <Button onClick={handleAddMedication} className="bg-green-600 hover:bg-green-700 text-white">
-        Submit
-      </Button>
-    </div>
-  </div>
-)}
+              <div className="flex justify-end mb-4">
+
+              </div>
+
+              {showForm && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border p-4 rounded-md bg-gray-50 dark:bg-gray-900">
+                  <input
+                    className="p-2 border rounded"
+                    placeholder="Medication Name"
+                    value={newMedication.medication}
+                    onChange={(e) => setNewMedication({ ...newMedication, medication: e.target.value })}
+                  />
+                  <input
+                    className="p-2 border rounded"
+                    placeholder="Dosage (e.g., 10mg)"
+                    value={newMedication.dosage}
+                    onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+                  />
+                  <select
+                    className="p-2 border rounded"
+                    value={newMedication.frequency}
+                    onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
+                  >
+                    <option value="">Select frequency</option>
+                    <option value="once a day">Once a day</option>
+                    <option value="twice a day">Twice a day</option>
+                    <option value="alternate days">Alternate days</option>
+                    <option value="as needed">As needed</option>
+                  </select>
+                  <input
+                    type="date"
+                    className="p-2 border rounded"
+                    value={newMedication.startDate}
+                    onChange={(e) => setNewMedication({ ...newMedication, startDate: e.target.value })}
+                  />
+                  <input
+                    type="date"
+                    className="p-2 border rounded"
+                    value={newMedication.endDate}
+                    onChange={(e) => setNewMedication({ ...newMedication, endDate: e.target.value })}
+                  />
+                  <input
+                    className="p-2 border rounded"
+                    placeholder="Prescribed By"
+                    value={newMedication.prescribedBy}
+                    onChange={(e) => setNewMedication({ ...newMedication, prescribedBy: e.target.value })}
+                  />
+                  <textarea
+                    className="p-2 border rounded md:col-span-2"
+                    rows={3}
+                    placeholder="Notes"
+                    value={newMedication.notes}
+                    onChange={(e) => setNewMedication({ ...newMedication, notes: e.target.value })}
+                  />
+                  <div className="md:col-span-2">
+                    <p className="font-medium mb-2">Time of Day</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {["morning", "afternoon", "evening", "night"].map((time) => (
+                        <label key={time} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={newMedication.timeOfDay.includes(time)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setNewMedication((prev) => ({
+                                ...prev,
+                                timeOfDay: checked
+                                  ? [...prev.timeOfDay, time]
+                                  : prev.timeOfDay.filter((t) => t !== time),
+                              }));
+                            }}
+                          />
+                          {time[0].toUpperCase() + time.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2 flex justify-end mt-4">
+                    <Button onClick={handleAddMedication} className="bg-green-600 hover:bg-green-700 text-white">
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <CardContent className="pt-6 bg-white dark:bg-gray-800">
                 {medications.length > 0 ? (
@@ -476,21 +481,21 @@ const handleAddMedication = async () => {
                       <span className="text-3xl font-bold text-gray-800 dark:text-white">{bmi}</span>
                       <Badge className={getBMIBadgeClass(bmi)}>{bmiCategory}</Badge>
                     </div>
-                    
+
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-300 via-green-500 to-green-700 dark:from-green-700 dark:via-green-600 dark:to-green-500" 
+                      <div
+                        className="h-full bg-gradient-to-r from-green-300 via-green-500 to-green-700 dark:from-green-700 dark:via-green-600 dark:to-green-500"
                         style={{ width: `${Math.min(getBMIPercentage(bmi), 100)}%` }}
                       ></div>
                     </div>
-                    
+
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                       <span>Underweight</span>
                       <span>Normal</span>
                       <span>Overweight</span>
                       <span>Obese</span>
                     </div>
-                    
+
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md text-sm">
                       <p className="text-gray-800 dark:text-gray-300">
                         {getBMIRecommendation(bmi)}
@@ -499,7 +504,7 @@ const handleAddMedication = async () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
                 <CardHeader className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <CardTitle className="text-gray-800 dark:text-white">Health Goals</CardTitle>
@@ -517,7 +522,7 @@ const handleAddMedication = async () => {
                         <p className="text-xs text-gray-600 dark:text-gray-400">{goal.description}</p>
                       </div>
                     ))}
-                    
+
                     <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800">
                       Add New Health Goal
                     </Button>
@@ -586,7 +591,7 @@ function getStatusBadgeClass(status: string) {
 
 function getPatientStatus(patient: never) {
   // Check if patient has any critical conditions
-  if (patient.chronicDiseases?.some((d: string) => 
+  if (patient.chronicDiseases?.some((d: string) =>
     ['diabetes', 'hypertension', 'heart disease'].includes(d.toLowerCase())
   )) {
     return "Regular Monitoring"
@@ -619,19 +624,19 @@ function generateMockVitals() {
 
 function generateMockHealthGoals() {
   return [
-    { 
-      name: "Weight Management", 
-      progress: 65, 
+    {
+      name: "Weight Management",
+      progress: 65,
       description: "Goal: Reduce weight to 70kg"
     },
-    { 
-      name: "Physical Activity", 
-      progress: 80, 
+    {
+      name: "Physical Activity",
+      progress: 80,
       description: "Goal: 30 minutes exercise, 5 days a week"
     },
-    { 
-      name: "Medication Adherence", 
-      progress: 90, 
+    {
+      name: "Medication Adherence",
+      progress: 90,
       description: "Goal: Take all medications as prescribed"
     }
   ]

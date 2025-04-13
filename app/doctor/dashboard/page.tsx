@@ -316,13 +316,13 @@ export default function DoctorDashboard() {
                     <div className="flex space-x-2 pt-2">
                       <Button
                         className="flex-1"
-                        onClick={() => router.push(`/doctor/patient-dashboard/${selectedPatient._id}`)}
+                        onClick={() => router.push(`/doctor/patient-dashboard/${selectedPatient.name}`)}
                       >
                         View Patient Dashboard
                       </Button>
-                      <Button variant="outline" className="flex-1">
+                      {/* <Button variant="outline" className="flex-1">
                         View Full History
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 ) : (

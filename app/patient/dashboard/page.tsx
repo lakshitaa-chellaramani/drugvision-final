@@ -39,6 +39,8 @@ import {
   Sector,
 } from "recharts"
 import MedicationInteractions from "@/components/medication-interactions"
+import MedicationAdherenceChart from '@/components/medical-adherence';
+
 
 // Mock data
 
@@ -273,7 +275,7 @@ export default function PatientDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Medication Adherence</CardTitle>
               <CardDescription>Last 7 days</CardDescription>
@@ -295,7 +297,8 @@ export default function PatientDashboard() {
                 <span className="text-green-600 dark:text-green-400 font-bold">89%</span>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
+          <MedicationAdherenceChart />
 
           <MedicationInteractions 
             medications={todaysMeds.map((med: { name: any }) => med.name)} 
@@ -348,36 +351,39 @@ export default function PatientDashboard() {
 
   {/* Medication Types */}
   <Card className="flex flex-col">
-    <CardHeader>
-      <CardTitle className="flex items-center">
-        <BarChart4 className="h-5 w-5 mr-2 text-indigo-500" />
-        Medication Types
-      </CardTitle>
-      <CardDescription>Breakdown by category</CardDescription>
-    </CardHeader>
-    <CardContent className="flex-grow flex justify-center">
-      <div className="h-[200px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <RechartsPieChart>
-            <Pie
-              data={medicationTypeData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {medicationTypeData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-          </RechartsPieChart>
-        </ResponsiveContainer>
-      </div>
-    </CardContent>
-  </Card>
-
+  <CardHeader>
+    <CardTitle className="flex items-center">
+      <BarChart4 className="h-5 w-5 mr-2 text-indigo-500" />
+      Medication Types
+    </CardTitle>
+    <CardDescription>Breakdown by category</CardDescription>
+  </CardHeader>
+  <CardContent className="flex-grow flex justify-center">
+    <div className="h-[200px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsPieChart>
+          <Pie
+            data={medicationTypeData}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+            labelLine={true}
+          >
+            {medicationTypeData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value, name) => [`${value}%`, name]} />
+          <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+        </RechartsPieChart>
+      </ResponsiveContainer>
+    </div>
+  </CardContent>
+</Card>
   {/* Medication Timing */}
   <Card className="flex flex-col">
     <CardHeader>
@@ -880,6 +886,9 @@ export default function PatientDashboard() {
                   You're doing well with your medication schedule. Try to maintain consistency on weekends.
                 </p>
               </div>
+             
+
+
 
               <div className="rounded-lg border p-4">
                 <h4 className="font-medium">Blood Pressure</h4>

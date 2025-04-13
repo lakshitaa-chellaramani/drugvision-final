@@ -26,7 +26,7 @@ const navItems = [
   },
   {
     name: "Upload Prescriptions",
-    href: "/patient/uploaddemo",
+    href: "/patient/upload2",
     icon: Upload,
   },
   {
@@ -114,9 +114,13 @@ export function PatientNavbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage
+                    src={`https://api.dicebear.com/7.x/thumbs/svg?seed=doctor-${Math.floor(Math.random() * 1000)}`}
+                    alt="Doctor Avatar"
+                  />
+                  <AvatarFallback>DS</AvatarFallback>
                 </Avatar>
+
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -134,8 +138,10 @@ export function PatientNavbar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <Link href="/" className="flex items-center">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

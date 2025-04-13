@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
+import { ParamValue } from "next/dist/server/request/params"
 
 export default function PatientDashboardPage() {
   const { id } = useParams()
@@ -17,12 +18,24 @@ export default function PatientDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const { theme, setTheme } = useTheme()
+  const [showForm, setShowForm] = useState(false);
+  const [newMedication, setNewMedication] = useState({
+    medication: '',
+    dosage: '',
+    frequency: '',
+    startDate: '',
+    endDate: '',
+    prescribedBy: '',
+    patient: patient?.name || '',
+    notes: '',
+    timeOfDay: [] as string[],
+});
 
-  const fetchPatientByName = async (name) => {
+  const fetchPatientByName = async (name: ParamValue) => {
     try {
       const res = await fetch("/api/patients")
       const data = await res.json()
-      const found = data.patients.find((p) => p.name.toLowerCase() === name.toLowerCase())
+      const found = data.patients.find((p: { name: string }) => p.name.toLowerCase() === name.toLowerCase())
       return found || null
     } catch (error) {
       console.error("Error fetching patients list:", error)
@@ -30,11 +43,11 @@ export default function PatientDashboardPage() {
     }
   }
 
-  const fetchMedicationsByName = async (name) => {
+  const fetchMedicationsByName = async (name: string) => {
     try {
       const res = await fetch("/api/medications")
       const data = await res.json()
-      const filtered = data.medications.filter((m) => m.patient?.toLowerCase() === name.toLowerCase())
+      const filtered = data.medications.filter((m: { patient: string }) => m.patient?.toLowerCase() === name.toLowerCase())
       return filtered
     } catch (error) {
       console.error("Error fetching medications:", error)
@@ -42,6 +55,7 @@ export default function PatientDashboardPage() {
     }
   }
 
+  
   useEffect(() => {
     const fetchEverything = async () => {
       setLoading(true)
@@ -86,6 +100,46 @@ export default function PatientDashboardPage() {
   const age = calculateAge(patient.dateOfBirth)
   const nextCheckup = getNextCheckupDate(new Date())
   const medicationAdherence = calculateAdherence(medications)
+
+
+ 
+
+const handleAddMedication = async () => {
+  try {
+    const res = await fetch("/api/medications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newMedication,
+        patient: patient.name,
+      }),
+    });
+
+    if (res.ok) {
+      alert("Medication added successfully!");
+      const updatedMeds = await fetchMedicationsByName(patient.name);
+      setMedications(updatedMeds);
+      setShowForm(false);
+      setNewMedication({
+        medication: '',
+        dosage: '',
+        frequency: '',
+        startDate: '',
+        endDate: '',
+        prescribedBy: '',
+        notes: '',
+        timeOfDay: [],
+      });
+    } else {
+      const err = await res.json();
+      alert("Failed: " + err.error);
+    }
+  } catch (err) {
+    console.error("Error adding medication:", err);
+    alert("An error occurred.");
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 py-8 px-4">
@@ -214,7 +268,7 @@ export default function PatientDashboardPage() {
               <CardContent className="pt-6 bg-white dark:bg-gray-800">
                 <div className="flex flex-wrap gap-2">
                   {patient.chronicDiseases?.length > 0 ? (
-                    patient.chronicDiseases.map((c, i) => (
+                    patient.chronicDiseases.map((c: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => (
                       <Badge key={i} className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">{c}</Badge>
                     ))
                   ) : (
@@ -234,7 +288,7 @@ export default function PatientDashboardPage() {
               <CardContent className="pt-6 bg-white dark:bg-gray-800">
                 <div className="flex flex-wrap gap-2">
                   {patient.allergies?.length > 0 ? (
-                    patient.allergies.map((a, i) => (
+                    patient.allergies.map((a: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => (
                       <Badge key={i} variant="outline" className="border-red-300 dark:border-red-800 text-red-600 dark:text-red-400">{a}</Badge>
                     ))
                   ) : (
@@ -279,7 +333,98 @@ export default function PatientDashboardPage() {
                   Current Medications
                 </CardTitle>
                 <CardDescription className="dark:text-gray-400">Medications prescribed to {patient.name}</CardDescription>
+                
               </CardHeader>
+              <div className="flex justify-end mb-4">
+  <Button
+    className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+    onClick={() => setShowForm(!showForm)}
+  >
+    {showForm ? "Close Form" : "Add Medication"}
+  </Button>
+</div>
+
+{showForm && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border p-4 rounded-md bg-gray-50 dark:bg-gray-900">
+    <input
+      className="p-2 border rounded"
+      placeholder="Medication Name"
+      value={newMedication.medication}
+      onChange={(e) => setNewMedication({ ...newMedication, medication: e.target.value })}
+    />
+    <input
+      className="p-2 border rounded"
+      placeholder="Dosage (e.g., 10mg)"
+      value={newMedication.dosage}
+      onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+    />
+    <select
+      className="p-2 border rounded"
+      value={newMedication.frequency}
+      onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
+    >
+      <option value="">Select frequency</option>
+      <option value="once a day">Once a day</option>
+      <option value="twice a day">Twice a day</option>
+      <option value="alternate days">Alternate days</option>
+      <option value="as needed">As needed</option>
+    </select>
+    <input
+      type="date"
+      className="p-2 border rounded"
+      value={newMedication.startDate}
+      onChange={(e) => setNewMedication({ ...newMedication, startDate: e.target.value })}
+    />
+    <input
+      type="date"
+      className="p-2 border rounded"
+      value={newMedication.endDate}
+      onChange={(e) => setNewMedication({ ...newMedication, endDate: e.target.value })}
+    />
+    <input
+      className="p-2 border rounded"
+      placeholder="Prescribed By"
+      value={newMedication.prescribedBy}
+      onChange={(e) => setNewMedication({ ...newMedication, prescribedBy: e.target.value })}
+    />
+    <textarea
+      className="p-2 border rounded md:col-span-2"
+      rows={3}
+      placeholder="Notes"
+      value={newMedication.notes}
+      onChange={(e) => setNewMedication({ ...newMedication, notes: e.target.value })}
+    />
+    <div className="md:col-span-2">
+      <p className="font-medium mb-2">Time of Day</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {["morning", "afternoon", "evening", "night"].map((time) => (
+          <label key={time} className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={newMedication.timeOfDay.includes(time)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setNewMedication((prev) => ({
+                  ...prev,
+                  timeOfDay: checked
+                    ? [...prev.timeOfDay, time]
+                    : prev.timeOfDay.filter((t) => t !== time),
+                }));
+              }}
+            />
+            {time[0].toUpperCase() + time.slice(1)}
+          </label>
+        ))}
+      </div>
+    </div>
+    <div className="md:col-span-2 flex justify-end mt-4">
+      <Button onClick={handleAddMedication} className="bg-green-600 hover:bg-green-700 text-white">
+        Submit
+      </Button>
+    </div>
+  </div>
+)}
+
               <CardContent className="pt-6 bg-white dark:bg-gray-800">
                 {medications.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,7 +532,7 @@ export default function PatientDashboardPage() {
   )
 }
 
-function calculateAge(dateOfBirth) {
+function calculateAge(dateOfBirth: string | number | Date) {
   const birthDate = new Date(dateOfBirth)
   const today = new Date()
   let age = today.getFullYear() - birthDate.getFullYear()
@@ -396,7 +541,7 @@ function calculateAge(dateOfBirth) {
   return age
 }
 
-function getBMICategory(bmi) {
+function getBMICategory(bmi: string) {
   const numBmi = parseFloat(bmi)
   if (numBmi < 18.5) return "Underweight"
   if (numBmi < 25) return "Normal weight"
@@ -404,7 +549,7 @@ function getBMICategory(bmi) {
   return "Obese"
 }
 
-function getBMIBadgeClass(bmi) {
+function getBMIBadgeClass(bmi: string) {
   const numBmi = parseFloat(bmi)
   if (numBmi < 18.5) return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
   if (numBmi < 25) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
@@ -412,13 +557,13 @@ function getBMIBadgeClass(bmi) {
   return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
 }
 
-function getBMIPercentage(bmi) {
+function getBMIPercentage(bmi: string) {
   // This function maps BMI to a percentage for visual display (15-40 BMI range)
   const numBmi = parseFloat(bmi)
   return ((numBmi - 15) / 25) * 100
 }
 
-function getBMIRecommendation(bmi) {
+function getBMIRecommendation(bmi: string) {
   const numBmi = parseFloat(bmi)
   if (numBmi < 18.5) return "Consider gaining some weight through a healthy diet rich in proteins and nutrients."
   if (numBmi < 25) return "Your BMI is in the healthy range. Maintain your current lifestyle with regular exercise."
@@ -426,7 +571,7 @@ function getBMIRecommendation(bmi) {
   return "A structured weight loss program is recommended. Please consult with your healthcare provider."
 }
 
-function getStatusBadgeClass(status) {
+function getStatusBadgeClass(status: string) {
   switch (status?.toLowerCase()) {
     case 'active':
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
@@ -439,9 +584,9 @@ function getStatusBadgeClass(status) {
   }
 }
 
-function getPatientStatus(patient) {
+function getPatientStatus(patient: never) {
   // Check if patient has any critical conditions
-  if (patient.chronicDiseases?.some(d => 
+  if (patient.chronicDiseases?.some((d: string) => 
     ['diabetes', 'hypertension', 'heart disease'].includes(d.toLowerCase())
   )) {
     return "Regular Monitoring"
@@ -449,17 +594,17 @@ function getPatientStatus(patient) {
   return "Routine Checkup"
 }
 
-function getNextCheckupDate(date) {
+function getNextCheckupDate(date: string | number | Date) {
   // Mock function to return a date 3 months in the future
   const nextDate = new Date(date)
   nextDate.setMonth(nextDate.getMonth() + 3)
   return nextDate
 }
 
-function calculateAdherence(medications) {
+function calculateAdherence(medications: any[]) {
   // Mock function to calculate medication adherence
   if (!medications.length) return 0
-  const activeMeds = medications.filter(m => m.status?.toLowerCase() === 'active')
+  const activeMeds = medications.filter((m: { status: string }) => m.status?.toLowerCase() === 'active')
   return Math.round((activeMeds.length / medications.length) * 100)
 }
 

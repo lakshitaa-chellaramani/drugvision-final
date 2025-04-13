@@ -13,7 +13,7 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 async function getInteractionFromGemini(drug1: string, drug2: string) {
   const prompt = `
 You are a biomedical AI model. Analyze the potential drug-drug interaction between **${drug1}** and **${drug2}**.
-
+and also mention with drug comes from which of my medicines
 Please respond ONLY in the following format:
 
 Severity Score (out of 10): <score>

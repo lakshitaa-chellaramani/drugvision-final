@@ -39,6 +39,11 @@ const navItems = [
     href: "/patient/healthplan",
     icon: Clipboard,
   },
+  {
+    name: "Symptom Checker",
+    href: "/patient/symptom-checker",
+    icon: Pill,
+  },
 ]
 
 export function PatientNavbar() {
